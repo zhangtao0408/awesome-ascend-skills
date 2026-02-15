@@ -1,35 +1,157 @@
 ---
 name: npu-commands
-description: Ascend NPU command-line utilities and hardware management. Use for npu-smi usage, device management, monitoring, and basic hardware operations. Routes to specialized sub-skills for query, configuration, upgrade, virtualization, and certificate management.
+description: Ascend NPU command-line utilities and hardware management master skill. Use for npu-smi usage, device management, monitoring, and basic hardware operations. Routes to specialized sub-skills organized by function: queries (basic/metrics/advanced), configuration (thresholds/modes/fan/system/clear), upgrades (workflow/components), virtualization (query/manage), and certificates (query/manage/monitor).
 ---
 
 # npu-smi Command Reference
 
-Master skill for npu-smi command-line utilities. This skill routes to specialized sub-skills based on command type.
+Master skill for Huawei Ascend NPU command-line utilities. This skill organizes all npu-smi functionality into focused sub-skills by function.
 
-## Quick Reference
+## Overview
+
+The `npu-smi` utility provides comprehensive management capabilities for Ascend NPU devices. To keep skills lightweight and focused, functionality is split into **18 specialized sub-skills** organized by category.
+
+## Quick Start
 
 ```bash
-# List all devices
+# List devices
 npu-smi info -l
 
-# Check device health
-npu-smi info -t health -i <id>
+# Check health
+npu-smi info -t health -i 0
 
-# View chip details
-npu-smi info -t npu -i <id> -c <chip_id>
+# View metrics
+npu-smi info -t temp -i 0 -c 0
+npu-smi info -t power -i 0 -c 0
+npu-smi info -t memory -i 0 -c 0
+```
 
-# Monitor metrics
-npu-smi info -t temp -i <id> -c <chip_id>
-npu-smi info -t power -i <id> -c <chip_id>
-npu-smi info -t memory -i <id> -c <chip_id>
+## Sub-Skill Organization
+
+### 📊 1. Device Queries (npu-smi-info/)
+
+Query device status and information.
+
+| Sub-Skill | Use When | Key Commands |
+|-----------|----------|--------------|
+| [npu-smi-info/basic/](npu-smi-info/basic/SKILL.md) | Listing devices, checking health, viewing board/chip info | `info -l`, `info -t health`, `info -t board`, `info -m` |
+| [npu-smi-info/metrics/](npu-smi-info/metrics/SKILL.md) | Monitoring temperature, power, memory, frequency | `info -t temp`, `info -t power`, `info -t memory`, `info -t freq` |
+| [npu-smi-info/advanced/](npu-smi-info/advanced/SKILL.md) | Checking processes, ECC errors, utilization, PCIe | `info proc`, `info -t ecc`, `info -t usages`, `info -t pcie-info` |
+
+**Navigation Guide:**
+- Use **basic** for initial device discovery and health checks
+- Use **metrics** for real-time performance monitoring
+- Use **advanced** for troubleshooting and detailed diagnostics
+
+### ⚙️ 2. Configuration (npu-smi-config/)
+
+Configure device settings and parameters.
+
+| Sub-Skill | Use When | Key Features |
+|-----------|----------|--------------|
+| [npu-smi-config/thresholds/](npu-smi-config/thresholds/SKILL.md) | Setting temperature and power limits | Temperature thresholds, power limits |
+| [npu-smi-config/modes/](npu-smi-config/modes/SKILL.md) | Configuring ECC, compute modes, P2P | ECC mode, compute mode, persistence, P2P |
+| [npu-smi-config/fan/](npu-smi-config/fan/SKILL.md) | Controlling fan speed and mode | Manual/auto mode, speed ratio |
+| [npu-smi-config/system/](npu-smi-config/system/SKILL.md) | System-level settings | MAC address, boot medium, CPU freq, logging |
+| [npu-smi-config/clear/](npu-smi-config/clear/SKILL.md) | Clearing counters and errors | ECC error clearing, cert threshold reset |
+
+**Navigation Guide:**
+- Use **thresholds** to set safety limits for temperature and power
+- Use **modes** to configure operational modes (ECC, compute, etc.)
+- Use **fan** for thermal management and noise control
+- Use **system** for network, boot, and logging configuration
+- Use **clear** to reset error counters after issues resolved
+
+### 🔧 3. Firmware Upgrades (npu-smi-upgrade/)
+
+Manage firmware lifecycle.
+
+| Sub-Skill | Use When | Key Features |
+|-----------|----------|--------------|
+| [npu-smi-upgrade/workflow/](npu-smi-upgrade/workflow/SKILL.md) | Understanding upgrade process | Complete workflow: query → upgrade → activate |
+| [npu-smi-upgrade/components/](npu-smi-upgrade/components/SKILL.md) | Upgrading specific components | MCU, bootloader, VRD specifics |
+
+**Navigation Guide:**
+- Use **workflow** for the complete upgrade procedure
+- Use **components** for component-specific details and requirements
+
+**Important Notes:**
+- MCU: Requires restart after activation
+- Bootloader: Requires restart after activation
+- VRD: Requires power cycle (30+ seconds off)
+
+### 🖥️ 4. Virtualization (npu-smi-vnpu/)
+
+Manage virtual NPU instances.
+
+| Sub-Skill | Use When | Key Features |
+|-----------|----------|--------------|
+| [npu-smi-vnpu/query/](npu-smi-vnpu/query/SKILL.md) | Checking virtualization status | AVI mode, templates, vNPU info |
+| [npu-smi-vnpu/manage/](npu-smi-vnpu/manage/SKILL.md) | Creating and managing vNPU | Create, destroy, configure vNPU |
+
+**Navigation Guide:**
+- Use **query** to check current virtualization state
+- Use **manage** to create, destroy, or modify vNPU instances
+
+**Common Use Cases:**
+- Multi-tenant environments
+- Resource isolation
+- Development/testing isolation
+
+### 🔐 5. Certificates (npu-smi-cert/)
+
+Manage TLS certificates and security.
+
+| Sub-Skill | Use When | Key Features |
+|-----------|----------|--------------|
+| [npu-smi-cert/query/](npu-smi-cert/query/SKILL.md) | Viewing certificate information | CSR generation, cert details, rootkey |
+| [npu-smi-cert/manage/](npu-smi-cert/manage/SKILL.md) | Importing and configuring certs | Import TLS, set thresholds, restore defaults |
+| [npu-smi-cert/monitor/](npu-smi-cert/monitor/SKILL.md) | Monitoring certificate expiration | Expiration checks, alerting scripts |
+
+**Navigation Guide:**
+- Use **query** to view current certificates and generate CSR
+- Use **manage** to import new certificates and configure settings
+- Use **monitor** to track expiration and set up alerts
+
+**Security Best Practices:**
+- Regular certificate rotation
+- Monitor expiration dates
+- Use appropriate thresholds (30 days prod, 60 days staging)
+
+## Decision Tree
+
+```
+Need to check device status?
+├── Basic info → npu-smi-info/basic/
+├── Temperature/Power/Memory → npu-smi-info/metrics/
+├── Processes/Errors/Utilization → npu-smi-info/advanced/
+
+Need to change settings?
+├── Temperature/Power limits → npu-smi-config/thresholds/
+├── ECC/Compute/P2P modes → npu-smi-config/modes/
+├── Fan control → npu-smi-config/fan/
+├── MAC/Boot/Logging → npu-smi-config/system/
+├── Clear errors → npu-smi-config/clear/
+
+Upgrading firmware?
+├── Learn workflow → npu-smi-upgrade/workflow/
+├── Component details → npu-smi-upgrade/components/
+
+Working with virtualization?
+├── Check status → npu-smi-vnpu/query/
+├── Create/Destroy vNPU → npu-smi-vnpu/manage/
+
+Managing certificates?
+├── View/Generate CSR → npu-smi-cert/query/
+├── Import/Configure → npu-smi-cert/manage/
+├── Monitor expiration → npu-smi-cert/monitor/
 ```
 
 ## Prerequisites
 
 - npu-smi tool installed
-- Root permissions (most configuration/upgrade commands)
-- Runtime user group permissions (some query commands)
+- Root permissions (configuration/upgrade)
+- Runtime permissions (query operations)
 
 ## Parameter Reference
 
@@ -38,56 +160,6 @@ npu-smi info -t memory -i <id> -c <chip_id>
 | `id` | Device ID | `npu-smi info -l` |
 | `chip_id` | Chip ID | `npu-smi info -m` |
 | `vnpu_id` | vNPU ID | Auto-assigned or specified |
-| `phy_id` | Physical chip ID | `ls /dev/davinci*` |
-
-## Sub-Skills
-
-| Command Type | Sub-Skill | Use When |
-|--------------|-----------|----------|
-| **Query Commands** | [npu-smi-query/](npu-smi-query/SKILL.md) | Retrieving device info, monitoring status |
-| **Configuration** | [npu-smi-config/](npu-smi-config/SKILL.md) | Setting thresholds, modes, ECC |
-| **Firmware Upgrade** | [npu-smi-upgrade/](npu-smi-upgrade/SKILL.md) | Upgrading MCU, bootloader, VRD |
-| **Virtualization** | [npu-smi-virtualization/](npu-smi-virtualization/SKILL.md) | Managing vNPU, AVI mode |
-| **Certificates** | [npu-smi-certificates/](npu-smi-certificates/SKILL.md) | TLS certificates, CSR |
-
-## Quick Navigation
-
-### Query Operations
-→ [npu-smi-query/](npu-smi-query/SKILL.md)
-- Device listing and health checks
-- Temperature, power, memory monitoring
-- Process and utilization queries
-- ECC error checking
-
-### Configuration Operations
-→ [npu-smi-config/](npu-smi-config/SKILL.md)
-- Temperature thresholds
-- Power limits
-- ECC mode
-- Fan control
-- MAC addresses
-- Clear operations
-
-### Firmware Management
-→ [npu-smi-upgrade/](npu-smi-upgrade/SKILL.md)
-- Version queries
-- Firmware upgrades
-- Upgrade status monitoring
-- Activation and restart
-
-### Virtualization
-→ [npu-smi-virtualization/](npu-smi-upgrade/SKILL.md)
-- AVI mode configuration
-- vNPU creation/destruction
-- Template management
-- Resource allocation
-
-### Security
-→ [npu-smi-certificates/](npu-smi-certificates/SKILL.md)
-- CSR generation
-- TLS certificate import
-- Expiration monitoring
-- Certificate validation
 
 ## Supported Platforms
 
@@ -97,16 +169,14 @@ npu-smi info -t memory -i <id> -c <chip_id>
 
 ## Important Notes
 
-- Most configuration/upgrade commands require **root permissions**
-- Device ID from `npu-smi info -l`
-- Chip ID from `npu-smi info -m`
+- Most configuration commands require **root permissions**
+- Device IDs from `npu-smi info -l`
+- Chip IDs from `npu-smi info -m`
 - Command availability varies by hardware platform
-- MAC address and boot medium changes require restart
-- MCU firmware requires restart after activation
-- VRD requires power cycle (30+ seconds off) to activate
-- Concurrent MCU firmware upgrades not supported
+- MAC/boot changes require restart
+- MCU/bootloader require restart after activation
+- VRD requires power cycle (30+ seconds)
 
 ## Official Documentation
 
 - **npu-smi Reference**: https://www.hiascend.com/document/detail/zh/canncommercial/81RC1/envdeployment/instg/instg_0045.html
-- **hccn_tool**: https://www.hiascend.com/document/detail/zh/canncommercial/81RC1/envdeployment/instg/instg_0052.html
