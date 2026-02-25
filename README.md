@@ -9,6 +9,7 @@ A streamlined knowledge base for Huawei Ascend NPU development, structured as AI
 | [npu-smi](npu-smi/SKILL.md) | npu-smi device management: queries, configuration, firmware upgrades, virtualization, certificates |
 | [hccl-test](hccl-test/SKILL.md) | HCCL collective communication performance testing and benchmarking |
 | [atc-model-converter](atc-model-converter/SKILL.md) | ATC model conversion: ONNX to .om format, OM inference with ais_bench, precision comparison, YOLO end-to-end deployment |
+| [ascend-docker](ascend-docker/SKILL.md) | Docker container setup for Ascend NPU development with device mappings and volume mounts |
 
 ## Installation
 

@@ -25,6 +25,12 @@
       "description": "Complete toolkit for Huawei Ascend NPU model conversion and inference. Convert ONNX models to .om format using ATC tool, run Python inference on OM models using ais_bench, compare precision between CPU ONNX and NPU OM outputs, and end-to-end YOLO inference with Ultralytics.",
       "source": "./atc-model-converter",
       "category": "development"
+    },
+    {
+      "name": "ascend-docker",
+      "description": "Create Docker containers for Huawei Ascend NPU development with proper device mappings (davinci_manager, devmm_svm, hisi_hdc) and volume mounts (driver, sbin, home). Use when setting up Ascend development environments in Docker, running CANN applications in containers, or creating isolated NPU development workspaces.",
+      "source": "./ascend-docker",
+      "category": "operations"
     }
   ]
 }
