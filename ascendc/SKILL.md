@@ -1,6 +1,16 @@
+---
 name: ascendc
 description: Guides the agent to develop AscendC transformer GMM-style custom ops (such as grouped_matmul_finalize_routing) and their CANN aclnn examples by following existing patterns under ops-transformer/gmm and attention/softmax_ops/examples. Use when adding or modifying these ops, their kernels, tiling/infershape logic, or CANN API examples.
-
+keywords:
+    - ascend
+    - ascendc
+    - kernel
+    - npu
+    - development
+    - 开发环境
+    - 算子
+    - 昇腾
+---
 # AscendC Transformer Operator Development
 
 This skill guides the agent to develop/modify AscendC transformer-related operators according to existing patterns, including:
