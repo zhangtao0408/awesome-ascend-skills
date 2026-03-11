@@ -63,10 +63,29 @@
       "category": "development"
     },
     {
-      "name": "mindspeed-llm",
-      "description": "MindSpeed-LLM distributed training suite for LLM pretraining, instruction fine-tuning (full/LoRA/QLoRA), and evaluation on Huawei Ascend NPU. Covers environment setup, data preprocessing (Alpaca/ShareGPT), HF-to-Megatron weight conversion, and distributed launch with TP/PP/CP parallelism. Supports Qwen, LLaMA, DeepSeek, GLM, Mistral, Baichuan and more.",
-      "source": "./mindspeed-llm",
+      "name": "diffusers-ascend-env-setup",
+      "description": "HuggingFace Diffusers 环境配置指南，用于华为昇腾 NPU。覆盖 CANN 版本检测、PyTorch + torch_npu 安装、Diffusers 库安装及环境验证。当用户需要在昇腾 NPU 上配置 Diffusers 环境时使用。",
+      "source": "./diffusers-ascend/diffusers-ascend-env-setup",
       "category": "development"
+    },
+    {
+      "name": "ascend-opplugin",
+      "description": "Installs op-plugin (torch_npu operator plugin) environment and guides custom NPU operator integration with PyTorch via two generic patterns (no workspace vs workspace+tiling), from kernel implementation through host registration, build, and test.",
+      "source": "./ascend-opplugin",
+      "category": "development"
+    },
+    {
+      "name": "mindspeed-llm-skills",
+      "description": "MindSpeed-LLM skill set for Huawei Ascend NPU, covering the full training pipeline: environment setup, data preprocessing, weight conversion, distributed training, and end-to-end orchestration. Use when deploying MindSpeed-LLM training on Ascend NPU.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./mindspeed-llm/mindspeed-llm-pipeline",
+        "./mindspeed-llm/mindspeed-llm-env-setup",
+        "./mindspeed-llm/mindspeed-llm-data-prep",
+        "./mindspeed-llm/mindspeed-llm-weight-prep",
+        "./mindspeed-llm/mindspeed-llm-training"
+      ]
     },
     {
       "name": "diffusers-ascend-skills",
