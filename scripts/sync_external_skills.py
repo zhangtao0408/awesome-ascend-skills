@@ -291,6 +291,12 @@ def inject_attribution(skill: Skill, commit_sha: str) -> str:
             fm = yaml.safe_load(parts[1]) or {}
             body = parts[2]
 
+    # Rename skill to follow nested naming convention: external-{source}-{name}
+    original_name = fm.get("name", skill.name)
+    new_name = f"external-{skill.source.name}-{skill.name}"
+    fm["name"] = new_name
+    fm["original-name"] = original_name
+
     # Inject attribution fields (don't overwrite existing)
     if "synced-from" not in fm:
         fm["synced-from"] = skill.source.url
@@ -478,7 +484,13 @@ def sync_all_sources(config_path: str = ".github/external-sources.yml") -> Dict:
                     success = copy_skill(skill, commit_sha)
                     if success:
                         print(f"  ✓ Synced {skill.name}")
-                        all_synced_skills.append((skill, commit_sha))
+                        synced_skill = Skill(
+                            name=skill.name,
+                            path=Path("external") / skill.source.name / skill.name,
+                            source=skill.source,
+                            has_skill_md=True,
+                        )
+                        all_synced_skills.append((synced_skill, commit_sha))
                     else:
                         print(f"  ❌ Validation failed for {skill.name}")
                         all_errors.append((skill.name, "Validation failed"))
@@ -667,8 +679,7 @@ def update_marketplace(
 
 
 def main():
-    """Main entry point."""
-    # Default config path (relative to project root)
+    """Main entry point for external skills sync."""
     config_path = ".github/external-sources.yml"
 
     try:
@@ -677,8 +688,25 @@ def main():
         for source in sources:
             print(f"  - {source.name}: {source.url} (branch: {source.branch})")
         print("\n✅ Configuration loaded successfully")
+
+        print("\n" + "=" * 60)
+        print("Starting sync...")
+        print("=" * 60)
+
+        results = sync_all_sources(config_path)
+
+        print("\n" + "=" * 60)
+        print("SYNC COMPLETE")
+        print("=" * 60)
+        print(f"  Synced: {results['synced']}")
+        print(f"  Skipped: {results['skipped']}")
+        print(f"  Errors: {results['errors']}")
+
+        if results["errors"] > 0:
+            sys.exit(1)
+
     except Exception as e:
-        print(f"❌ Failed to load config: {e}", file=sys.stderr)
+        print(f"❌ Failed: {e}", file=sys.stderr)
         sys.exit(1)
 
 
