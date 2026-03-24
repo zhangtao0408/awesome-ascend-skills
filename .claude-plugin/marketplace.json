@@ -155,6 +155,12 @@
         "./external/gitcode-ascend/skill-auditor",
         "./external/gitcode-ascend/npu-adapter-reviewer"
       ]
+    },
+    {
+      "name": "wan-ascend-adaptation",
+      "description": "Comprehensive guide for adapting Wan series video generation models (Wan2.2/2.1/1.3) and similar diffusion-based video frameworks to Huawei Ascend NPU. ",
+      "source": "./wan-ascend-adaptation",
+      "category": "development"
     }
   ]
 }
