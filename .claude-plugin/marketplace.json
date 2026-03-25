@@ -121,6 +121,41 @@
         "./profiling-analysis/profiling-computing",
         "./profiling-analysis/profiling-communication"
       ]
+    },
+    {
+      "name": "external-mindstudio-skills",
+      "description": "从 mindstudio 同步的 Ascend 技能集，包含 6 个技能：\n- ascend-profiler-db-explorer: 面向 Ascend PyTorch Profiler / msprof DB（如 ascend_pytorch_profiler*.db、msprof_*.db）的 SQL 分析技能。将自然语言问题（\n- document-ux-review: 当用户希望你像第一次接触项目的人一样，真实按仓库的 README、安装文档或 quick start 跑一遍，并判断“新人能不能走通”“文档是否可用”“哪里会卡住”“安装/启动说明是否对新手友好”时，\n- op-mfu-calculator: 计算算子（如 matmul/GEMM）的 MFU（Machine FLOP Utilization），并给出清晰的公式和推导过程。\n- ... 等 3 个技能",
+      "source": "./",
+      "strict": false,
+      "external": true,
+      "source-url": "https://github.com/kali20gakki/mindstudio-skills",
+      "source-branch": "main",
+      "skills": [
+        "./external/mindstudio/ascend-profiler-db-explorer",
+        "./external/mindstudio/document-ux-review",
+        "./external/mindstudio/op-mfu-calculator",
+        "./external/mindstudio/mindstudio_profiler_data_check",
+        "./external/mindstudio/cluster-fast-slow-rank-detector",
+        "./external/mindstudio/github-raw-fetch"
+      ]
+    },
+    {
+      "name": "external-gitcode-ascend-skills",
+      "description": "从 gitcode-ascend 同步的 Ascend 技能集，包含 7 个技能：\n- vLLM-ascend_FAQ_Generator: 为 vLLM-ascend 项目构建自动化工作流，处理已关闭的Issue并生成Debug FAQ。Use when users want to process closed issues from v\n- vector-triton-ascend-ops-optimizer: 昇腾（Ascend） NPU 上 Triton 算子深度性能优化技能（Skill），致力于实现用户要求的 Triton 算子性能提升。核心技术包括但不限于 Unified Buffer (UB) 容量\n- ascend-inference-repos-copilot: 昇腾（Ascend）推理生态开源代码仓库智能问答专家旨在为 vLLM、vLLM-Ascend、MindIE-LLM、MindIE-SD、MindIE-Motor、MindIE-Turbo 以及 msM\n- ... 等 4 个技能",
+      "source": "./",
+      "strict": false,
+      "external": true,
+      "source-url": "https://gitcode.com/Ascend/agent-skills",
+      "source-branch": "master",
+      "skills": [
+        "./external/gitcode-ascend/vLLM-ascend_FAQ_Generator",
+        "./external/gitcode-ascend/vector-triton-ascend-ops-optimizer",
+        "./external/gitcode-ascend/ascend-inference-repos-copilot",
+        "./external/gitcode-ascend/ascend-profiling-anomaly",
+        "./external/gitcode-ascend/simple-vector-triton-gpu-to-npu",
+        "./external/gitcode-ascend/skill-auditor",
+        "./external/gitcode-ascend/npu-adapter-reviewer"
+      ]
     }
   ]
 }
