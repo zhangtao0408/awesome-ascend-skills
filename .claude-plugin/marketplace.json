@@ -100,7 +100,9 @@
       "skills": [
         "./npu-smi",
         "./ascend-docker",
-        "./torch_npu"
+        "./torch_npu",
+        "./hccl-test",
+        "./torch-npu-comm-test"
       ]
     },
     {
