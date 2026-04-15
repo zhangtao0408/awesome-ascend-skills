@@ -25,8 +25,8 @@ python3 scripts/validate_skills.py
 python3 scripts/validate_skills.py | grep -A 3 "your-skill/"
 
 # Quick checks
-head -20 npu-smi/SKILL.md
-grep "^name:" npu-smi/SKILL.md
+head -20 base/npu-smi/SKILL.md
+grep "^name:" base/npu-smi/SKILL.md
 ```
 
 **CI/CD:** `.github/workflows/validate-skills.yml` runs on push to `main`/`feat/**` and PRs.
@@ -37,13 +37,34 @@ grep "^name:" npu-smi/SKILL.md
 
 ```
 awesome-ascend-skills/
-├── npu-smi/                           # Root-level leaf skill
-│   ├── SKILL.md                       # Core content (≤500 lines)
-│   ├── references/                    # Detailed docs (optional)
-│   └── scripts/                       # Executable scripts (optional)
-├── mindspeed-llm/                     # Nested domain skills
-│   ├── mindspeed-llm-pipeline/
-│   └── mindspeed-llm-training/
+├── base/                              # Category entry + categorized leaf skills
+│   ├── README.md
+│   ├── npu-smi/
+│   ├── ascend-docker/
+│   └── torch_npu/
+├── inference/                         # Inference/model conversion/benchmark skills
+│   ├── README.md
+│   ├── atc-model-converter/
+│   ├── msmodelslim/
+│   └── diffusers-ascend/
+├── training/                          # Training/communication skill trees
+│   ├── README.md
+│   ├── hccl-test/
+│   ├── torch-npu-comm-test/
+│   └── mindspeed-llm/
+├── profiling/                         # Profiling/analysis skill trees
+│   ├── README.md
+│   ├── profiling-analysis/
+│   └── mindspeed-llm-train-profiler/
+├── ops/                               # Operator development/migration skills
+│   ├── README.md
+│   ├── ascendc/
+│   ├── ascend-opplugin/
+│   └── triton-ascend-migration/
+├── knowledge/                         # Engineering knowledge and RCA skills
+│   ├── README.md
+│   ├── github-issue-summary/
+│   └── github-issue-rca/
 ├── ai-for-science/                    # Router + nested specialist skills
 ├── external/                          # Synced external skills
 ├── docs/governance/                   # Repository governance docs
@@ -76,6 +97,8 @@ Detailed instructions...
 
 **Rules:**
 - Root-level `name`: MUST match directory name exactly
+- Categorized leaf `name`: when stored under `base/`, `inference/`, `training/`, `profiling/`, `ops/`, or `knowledge/`, still matches the leaf directory name exactly
+- Categorized nested `name`: when a nested skill tree lives under a category directory, the nested leaf still follows the domain subfolder prefix (for example `training/mindspeed-llm/... -> name: mindspeed-llm-*`)
 - Nested `name`: MUST follow validator rules and start with the top-level folder prefix (for example `ai-for-science-*`)
 - `description`: ≥20 characters for agent matching
 - **Progressive disclosure:** Core in SKILL.md (≤500 lines), details in `references/`
@@ -108,6 +131,7 @@ readonly DIR="$(cd "$(dirname "$0")" && pwd)"
 |---------|------------|---------|
 | Directories | `lowercase-with-hyphens` | `npu-smi` |
 | Root skill names | Match directory | `name: npu-smi` |
+| Categorized leaf names | Match leaf directory | `knowledge/github-issue-rca -> name: github-issue-rca` |
 | Nested skill names | Start with top-level folder | `name: ai-for-science-ankh-...` |
 | Official bundles | `ascend-<domain>` | `ascend-inference` |
 | Domain skill sets | Prefer `-skills` suffix | `mindspeed-llm-skills` |

@@ -74,6 +74,24 @@
 
 新增 skill 时，应先判断功能域，再决定角色类型。
 
+### 3.0 开发入口目录
+
+为降低仓库开发时的查找成本，仓库应提供按功能域组织的开发入口目录：
+
+- `base/`
+- `inference/`
+- `training/`
+- `profiling/`
+- `ops/`
+- `knowledge/`
+- `ai-for-science/`
+
+当前仓库已采用分类目录承载本地 skills，并要求：
+
+1. README 中有明确的开发目录入口
+2. 每个分类目录与其承载的实际 skill 保持一致
+3. validate / CI / marketplace / sync 必须与当前分类目录结构一致
+
 ### 3.1 `profiling` vs `ops` 边界
 
 这两个域最容易让新人混淆，需要显式区分：
@@ -89,7 +107,10 @@
 
 - 官方 bundle：`ascend-<domain>`
 - 领域 skill set：优先使用 `-skills` 后缀
+- 分类入口目录：优先使用功能域名，如 `base/`、`inference/`、`ops/`
 - 根目录 leaf skill：保持 `lowercase-with-hyphens`
+- 分类目录下的 leaf skill：仍使用原始 leaf 名称，不额外追加分类前缀
+- 分类目录下的 nested skill：名称以前一层领域子目录为前缀，不额外追加分类目录前缀
 - 嵌套 skill：遵循仓库校验器要求，名称以前缀目录名开头
 - external skill：保持同步命名，不在本仓重命名
 
@@ -138,6 +159,12 @@
 - 必须列出核心覆盖范围，避免“万能包”描述
 - bundle 中每个 skill 的存在都应能回答“为什么用户会一起安装它”
 - 如果 bundle 与其他 bundle 容易混淆，必须补充“怎么选”的边界说明
+
+### 5.5 开发入口目录要求
+
+- 每个分类入口目录都应有 `README.md`
+- 分类入口目录中的说明必须指向当前实际 skill 路径
+- 如果目录结构发生迁移，README、marketplace、CI 与交叉链接必须在同一轮更新中完成
 
 ### 5.3 Router Skill 额外要求
 
