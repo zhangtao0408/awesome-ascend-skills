@@ -4,7 +4,12 @@ Coding guidelines for the Awesome Ascend Skills repository.
 
 ## Repository Overview
 
-A **knowledge base repository** for Huawei Ascend NPU development, structured as flat AI Skills.
+A **knowledge base repository** for Huawei Ascend NPU development, structured as AI Skills with multiple layers:
+
+- root-level leaf skills
+- nested domain skills
+- official bundle entries in `marketplace.json`
+- external synced skills under `external/`
 
 **Primary Skills:** npu-smi, hccl-test, atc-model-converter, ascend-docker, msmodelslim, ais-bench, vllm-ascend, ascendc, torch_npu
 
@@ -32,12 +37,18 @@ grep "^name:" npu-smi/SKILL.md
 
 ```
 awesome-ascend-skills/
-├── npu-smi/                    # Skill directory
-│   ├── SKILL.md                # Core content (≤500 lines)
-│   ├── references/             # Detailed docs (optional)
-│   └── scripts/                # Executable scripts (optional)
-├── scripts/validate_skills.py  # Validation script
-└── .claude-plugin/marketplace.json  # Plugin registry
+├── npu-smi/                           # Root-level leaf skill
+│   ├── SKILL.md                       # Core content (≤500 lines)
+│   ├── references/                    # Detailed docs (optional)
+│   └── scripts/                       # Executable scripts (optional)
+├── mindspeed-llm/                     # Nested domain skills
+│   ├── mindspeed-llm-pipeline/
+│   └── mindspeed-llm-training/
+├── ai-for-science/                    # Router + nested specialist skills
+├── external/                          # Synced external skills
+├── docs/governance/                   # Repository governance docs
+├── scripts/validate_skills.py         # Validation script
+└── .claude-plugin/marketplace.json    # Plugin registry and bundle definitions
 ```
 
 ---
@@ -64,7 +75,8 @@ Detailed instructions...
 ```
 
 **Rules:**
-- `name`: MUST match directory name exactly
+- Root-level `name`: MUST match directory name exactly
+- Nested `name`: MUST follow validator rules and start with the top-level folder prefix (for example `ai-for-science-*`)
 - `description`: ≥20 characters for agent matching
 - **Progressive disclosure:** Core in SKILL.md (≤500 lines), details in `references/`
 - **Bilingual:** Chinese content encouraged
@@ -95,7 +107,10 @@ readonly DIR="$(cd "$(dirname "$0")" && pwd)"
 | Element | Convention | Example |
 |---------|------------|---------|
 | Directories | `lowercase-with-hyphens` | `npu-smi` |
-| Skill names | Match directory | `name: npu-smi` |
+| Root skill names | Match directory | `name: npu-smi` |
+| Nested skill names | Start with top-level folder | `name: ai-for-science-ankh-...` |
+| Official bundles | `ascend-<domain>` | `ascend-inference` |
+| Domain skill sets | Prefer `-skills` suffix | `mindspeed-llm-skills` |
 | Scripts | `kebab-case.sh` / `snake_case.py` | `check-health.sh` |
 | References | `lowercase-with-hyphens.md` | `queries.md` |
 | Configs | `kebab-case.yaml` | `config.yaml` |
@@ -115,9 +130,11 @@ readonly DIR="$(cd "$(dirname "$0")" && pwd)"
 1. `mkdir -p new-skill`
 2. Create `SKILL.md` with frontmatter
 3. Add `references/`, `scripts/`, `assets/` as needed
-4. Update `.claude-plugin/marketplace.json`
-5. Update `README.md` skills table
-6. Run `python3 scripts/validate_skills.py`
+4. Decide whether this is a leaf skill, nested skill, domain skill set, official bundle, or external sync concern
+5. Update `.claude-plugin/marketplace.json` if registry or bundle exposure changes
+6. Update `README.md` navigation / install entry, not just a flat table
+7. If governance rules are affected, update `docs/governance/skill-governance.md`
+8. Run `python3 scripts/validate_skills.py`
 
 **marketplace.json:**
 ```json
@@ -133,7 +150,7 @@ readonly DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ## Key Principles
 
-1. **Flat structure:** Skills at root level
+1. **Layered structure:** root skills, nested skills, bundles, and external skills each have distinct roles
 2. **Independence:** Each skill usable independently
 3. **Keywords:** Include in `description`
 4. **Progressive disclosure:** Core in SKILL.md, details in `references/`
@@ -145,11 +162,12 @@ readonly DIR="$(cd "$(dirname "$0")" && pwd)"
 
 Before submitting PR:
 - [ ] `name` matches directory name
+- [ ] Nested skills follow top-level prefix naming rules
 - [ ] `description` ≥20 characters
 - [ ] Valid YAML frontmatter
 - [ ] Internal links resolve
 - [ ] No `[TODO]` placeholders
-- [ ] Added to `marketplace.json` and `README.md`
+- [ ] Added to `marketplace.json` and appropriate README navigation / install entry
 - [ ] `python3 scripts/validate_skills.py` passes
 
 ---

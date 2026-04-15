@@ -93,6 +93,101 @@
       "category": "development"
     },
     {
+      "name": "ascend-base",
+      "description": "官方推荐的昇腾基础安装包。适合新同学和通用项目起步，包含设备检查、容器环境与 PyTorch NPU 基础能力。建议作为所有场景的第一步安装入口。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./npu-smi",
+        "./ascend-docker",
+        "./torch_npu"
+      ]
+    },
+    {
+      "name": "ascend-inference",
+      "description": "官方推荐的昇腾推理安装包。适用于模型转换、量化、推理部署与评测场景，包含 ATC、vLLM-Ascend、ais-bench、msmodelslim、Diffusers 与 Wan 适配相关 skills。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./torch_npu",
+        "./atc-model-converter",
+        "./vllm-ascend",
+        "./ais-bench",
+        "./msmodelslim",
+        "./diffusers-ascend/diffusers-ascend-env-setup",
+        "./diffusers-ascend/diffusers-ascend-weight-prep",
+        "./diffusers-ascend/diffusers-ascend-pipeline",
+        "./wan-ascend-adaptation"
+      ]
+    },
+    {
+      "name": "ascend-training",
+      "description": "官方推荐的昇腾训练安装包。适用于分布式训练、通信测试和 MindSpeed-LLM 训练链路，包含 HCCL、torch 通信测试、MindSpeed-LLM 全流程与 MFU 分析相关 skills。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./torch_npu",
+        "./hccl-test",
+        "./torch-npu-comm-test",
+        "./mindspeed-llm/mindspeed-llm-pipeline",
+        "./mindspeed-llm/mindspeed-llm-env-setup",
+        "./mindspeed-llm/mindspeed-llm-data-prep",
+        "./mindspeed-llm/mindspeed-llm-weight-prep",
+        "./mindspeed-llm/mindspeed-llm-training",
+        "./training-mfu-calculator"
+      ]
+    },
+    {
+      "name": "ascend-profiling",
+      "description": "官方推荐的昇腾 Profiling 与性能分析安装包。适用于 Profiling 数据采集、瓶颈分析、训练性能诊断与算子基准测试场景。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./profiling-analysis",
+        "./profiling-analysis/profiling-analysis-hostbound",
+        "./profiling-analysis/profiling-analysis-computing",
+        "./profiling-analysis/profiling-analysis-communication",
+        "./mindspeed-llm-train-profiler",
+        "./npu-op-benchmark",
+        "./training-mfu-calculator"
+      ]
+    },
+    {
+      "name": "ascend-ops",
+      "description": "官方推荐的昇腾算子开发与迁移安装包。适用于 AscendC 算子开发、torch_npu 自定义算子接入、Triton-Ascend 迁移与算子基准测试场景。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./torch_npu",
+        "./ascendc",
+        "./ascend-opplugin",
+        "./triton-ascend-migration",
+        "./npu-op-benchmark"
+      ]
+    },
+    {
+      "name": "ascend-ai-for-science",
+      "description": "官方推荐的 AI for Science 安装包。适用于 AI for Science 场景下的 Profiling 采集、模型迁移、TensorFlow/Keras 路线选择与相关子方向能力。",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./ai-for-science/ai4s-main",
+        "./ai-for-science/models/ai4s-basic",
+        "./ai-for-science/models/ankh",
+        "./ai-for-science/models/boltz2",
+        "./ai-for-science/models/boltzgen",
+        "./ai-for-science/models/deepfri",
+        "./ai-for-science/models/deepfri-tf-npu",
+        "./ai-for-science/models/diffsbdd",
+        "./ai-for-science/models/generator",
+        "./ai-for-science/models/oligoformer",
+        "./ai-for-science/models/proteinbert",
+        "./ai-for-science/tf-framework/ascend-tf-community",
+        "./ai-for-science/tf-framework/tf-to-pytorch",
+        "./ai-for-science/ai4s-profiling"
+      ]
+    },
+    {
       "name": "mindspeed-llm-skills",
       "description": "MindSpeed-LLM skill set for Huawei Ascend NPU, covering the full training pipeline: environment setup, data preprocessing, weight conversion, distributed training, and end-to-end orchestration. Use when deploying MindSpeed-LLM training on Ascend NPU.",
       "source": "./",
