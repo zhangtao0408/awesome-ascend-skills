@@ -231,11 +231,14 @@ def find_skills(repo_path: Path, source: ExternalSource) -> List[Skill]:
 
 
 def get_local_skills() -> Set[str]:
-    """Get skill names in repo root (excluding external/)."""
+    """Get local skill directory names outside external/ and hidden system dirs."""
+    excluded_parts = {"external", ".agents", ".git", ".worktrees"}
     skills = set()
-    for item in Path(".").iterdir():
-        if item.is_dir() and (item / "SKILL.md").exists() and item.name != "external":
-            skills.add(item.name)
+    for skill_md in Path(".").glob("**/SKILL.md"):
+        rel_parts = skill_md.parts
+        if any(part in excluded_parts for part in rel_parts):
+            continue
+        skills.add(skill_md.parent.name)
     return skills
 
 
@@ -294,7 +297,7 @@ def load_existing_external_skills(
 
 
 def build_synced_skill_index(
-    synced_skills: Dict[Tuple[str, str], Tuple[Skill, str]]
+    synced_skills: Dict[Tuple[str, str], Tuple[Skill, str]],
 ) -> Dict[str, Set[str]]:
     index: Dict[str, Set[str]] = {}
     for source_name, skill_name in synced_skills.keys():
@@ -544,7 +547,9 @@ def sync_all_sources(config_path: str = ".github/external-sources.yml") -> Dict:
             skills = find_skills(repo_path, source)
             print(f"  Found {len(skills)} skills")
             current_skill_names = {skill.name for skill in skills}
-            prune_removed_source_skills(existing_external_skills, source, current_skill_names)
+            prune_removed_source_skills(
+                existing_external_skills, source, current_skill_names
+            )
 
             synced_skills = build_synced_skill_index(existing_external_skills)
             print(f"  Local skills: {len(local_skills)}")
@@ -744,9 +749,7 @@ def update_marketplace(
         skills_by_source[skill.source.name].append((skill, commit_sha))
 
     plugins = [
-        p
-        for p in plugins
-        if not (isinstance(p, dict) and p.get("external") is True)
+        p for p in plugins if not (isinstance(p, dict) and p.get("external") is True)
     ]
 
     # Create grouped entries for each source

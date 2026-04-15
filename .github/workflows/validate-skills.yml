@@ -50,6 +50,8 @@ jobs:
           from pathlib import Path
           import re
 
+          CATEGORY_DIRS = {'base', 'inference', 'training', 'profiling', 'ops', 'knowledge'}
+
           def parse_name(skill_path: Path) -> str:
               content = skill_path.read_text(encoding='utf-8')
               match = re.search(r'^name:\s*(.+)$', content, re.MULTILINE)
@@ -64,9 +66,27 @@ jobs:
               rel_parts = skill_path.relative_to(repo_root).parts
               is_in_agents = '.agents' in rel_parts
               depth = len(rel_parts) - 1
-              is_nested_skill = depth > 1 and not is_in_agents
+              is_categorized_leaf = depth == 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
+              is_categorized_nested = depth > 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
+              is_nested_skill = depth > 1 and not is_in_agents and not is_categorized_leaf and not is_categorized_nested
 
-              if is_nested_skill:
+              if is_categorized_leaf:
+                  expected_name = skill_path.parent.name
+                  if actual_name != expected_name:
+                      raise SystemExit(
+                          f"Categorized leaf skill name '{actual_name}' doesn't match directory '{expected_name}' "
+                          f"(file: {skill_path})"
+                      )
+                  print(f"OK: {skill_path} -> name: {actual_name} (categorized leaf)")
+              elif is_categorized_nested:
+                  folder_name = rel_parts[1]
+                  if not actual_name.startswith(f'{folder_name}-'):
+                      raise SystemExit(
+                          f"Categorized nested skill name '{actual_name}' should start with '{folder_name}-' "
+                          f"(file: {skill_path})"
+                      )
+                  print(f"OK: {skill_path} -> name: {actual_name} (categorized nested)")
+              elif is_nested_skill:
                   folder_name = rel_parts[0]
                   if not actual_name.startswith(f'{folder_name}-'):
                       raise SystemExit(

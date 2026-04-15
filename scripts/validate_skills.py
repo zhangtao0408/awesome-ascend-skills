@@ -24,6 +24,9 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
     return frontmatter, body
 
 
+CATEGORY_DIRS = {"base", "inference", "training", "profiling", "ops", "knowledge"}
+
+
 def validate_skill_file(skill_path: Path, repo_root: Path) -> tuple[list, list]:
     errors = []
     warnings = []
@@ -54,9 +57,31 @@ def validate_skill_file(skill_path: Path, repo_root: Path) -> tuple[list, list]:
     is_in_agents = ".agents" in rel_parts
     depth = len(rel_parts) - 1  # -1 for SKILL.md itself
 
-    is_nested_skill = depth > 1 and not is_in_agents
+    is_categorized_leaf = (
+        depth == 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
+    )
+    is_categorized_nested = (
+        depth > 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
+    )
+    is_nested_skill = (
+        depth > 1
+        and not is_in_agents
+        and not is_categorized_leaf
+        and not is_categorized_nested
+    )
 
-    if is_nested_skill:
+    if is_categorized_leaf:
+        if actual_name != expected_name:
+            errors.append(
+                f"Categorized leaf skill name '{actual_name}' doesn't match directory '{expected_name}'"
+            )
+    elif is_categorized_nested:
+        folder_name = rel_parts[1]
+        if not actual_name.startswith(f"{folder_name}-"):
+            errors.append(
+                f"Categorized nested skill name '{actual_name}' should start with '{folder_name}-'"
+            )
+    elif is_nested_skill:
         folder_name = rel_parts[0]
         if not actual_name.startswith(f"{folder_name}-"):
             errors.append(

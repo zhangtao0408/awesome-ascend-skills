@@ -6,6 +6,7 @@ from pathlib import Path
 from scripts.sync_external_skills import (
     build_synced_skill_index,
     detect_conflicts,
+    get_local_skills,
     load_existing_external_skills,
     prune_removed_source_skills,
 )
@@ -51,14 +52,19 @@ def test_load_existing_external_skills_reads_current_disk_state(tmp_path: Path) 
 
     existing = load_existing_external_skills(sources, external_root=external_root)
 
-    assert set(existing.keys()) == {("source-a", "skill-one"), ("source-b", "skill-two")}
+    assert set(existing.keys()) == {
+        ("source-a", "skill-one"),
+        ("source-b", "skill-two"),
+    }
     assert existing[("source-a", "skill-one")][1] == "abc123"
     assert existing[("source-b", "skill-two")][1] == "def456"
 
 
 def test_detect_conflicts_allows_resync_from_same_source() -> None:
     source = ExternalSource(name="source-a", url="https://example.com/a.git")
-    skill = Skill(name="skill-one", path=Path("/tmp/skill-one"), source=source, has_skill_md=True)
+    skill = Skill(
+        name="skill-one", path=Path("/tmp/skill-one"), source=source, has_skill_md=True
+    )
 
     synced_index = build_synced_skill_index(
         {
@@ -66,13 +72,17 @@ def test_detect_conflicts_allows_resync_from_same_source() -> None:
         }
     )
 
-    assert detect_conflicts(skill, local_skills=set(), synced_skills=synced_index) is None
+    assert (
+        detect_conflicts(skill, local_skills=set(), synced_skills=synced_index) is None
+    )
 
 
 def test_detect_conflicts_blocks_other_synced_sources() -> None:
     source = ExternalSource(name="source-a", url="https://example.com/a.git")
     other_source = ExternalSource(name="source-b", url="https://example.com/b.git")
-    skill = Skill(name="skill-one", path=Path("/tmp/skill-one"), source=source, has_skill_md=True)
+    skill = Skill(
+        name="skill-one", path=Path("/tmp/skill-one"), source=source, has_skill_md=True
+    )
     other_skill = Skill(
         name="skill-one",
         path=Path("/tmp/other-skill-one"),
@@ -93,7 +103,9 @@ def test_detect_conflicts_blocks_other_synced_sources() -> None:
     assert conflict.external_source == "synced (source-b)"
 
 
-def test_load_existing_external_skills_keeps_recorded_source_url(tmp_path: Path) -> None:
+def test_load_existing_external_skills_keeps_recorded_source_url(
+    tmp_path: Path,
+) -> None:
     external_root = tmp_path / "external"
     skill_dir = external_root / "source-a" / "skill-one"
     skill_dir.mkdir(parents=True)
@@ -118,17 +130,24 @@ def test_load_existing_external_skills_keeps_recorded_source_url(tmp_path: Path)
         external_root=external_root,
     )
 
-    assert existing[("source-a", "skill-one")][0].source.url == "https://old.example.com/a.git"
+    assert (
+        existing[("source-a", "skill-one")][0].source.url
+        == "https://old.example.com/a.git"
+    )
 
 
-def test_prune_removed_source_skills_removes_stale_same_source_entries(tmp_path: Path) -> None:
+def test_prune_removed_source_skills_removes_stale_same_source_entries(
+    tmp_path: Path,
+) -> None:
     source = ExternalSource(name="source-a", url="https://example.com/a.git")
     kept_dir = tmp_path / "external" / "source-a" / "kept-skill"
     stale_dir = tmp_path / "external" / "source-a" / "stale-skill"
     write_skill(kept_dir, "external-source-a-kept-skill", commit_sha="abc123")
     write_skill(stale_dir, "external-source-a-stale-skill", commit_sha="def456")
 
-    existing = load_existing_external_skills([source], external_root=tmp_path / "external")
+    existing = load_existing_external_skills(
+        [source], external_root=tmp_path / "external"
+    )
 
     original_cwd = Path.cwd()
     try:
@@ -141,3 +160,32 @@ def test_prune_removed_source_skills_removes_stale_same_source_entries(tmp_path:
     assert ("source-a", "stale-skill") not in existing
     assert kept_dir.exists()
     assert not stale_dir.exists()
+
+
+def test_get_local_skills_finds_nested_local_skills_and_skips_external(
+    tmp_path: Path,
+) -> None:
+    write_skill(tmp_path / "inference" / "atc-model-converter", "atc-model-converter")
+    write_skill(
+        tmp_path / "training" / "mindspeed-llm" / "mindspeed-llm-training",
+        "training-mindspeed-llm-training",
+    )
+    write_skill(
+        tmp_path / "external" / "source-a" / "external-skill",
+        "external-source-a-external-skill",
+    )
+    write_skill(
+        tmp_path / ".agents" / "skills" / "local-agent-skill", "local-agent-skill"
+    )
+
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(tmp_path)
+        local_skills = get_local_skills()
+    finally:
+        os.chdir(original_cwd)
+
+    assert "atc-model-converter" in local_skills
+    assert "mindspeed-llm-training" in local_skills
+    assert "external-skill" not in local_skills
+    assert "local-agent-skill" not in local_skills
