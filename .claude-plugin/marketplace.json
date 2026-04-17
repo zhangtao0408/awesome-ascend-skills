@@ -87,6 +87,12 @@
       "category": "development"
     },
     {
+      "name": "vllm-ascend-server",
+      "description": "在昇腾 NPU 上部署 vLLM 推理服务。支持本地/远程部署、裸金属/容器/Docker 镜像，自动模型发现、量化检测、张量并行配置、graph/eager 模式选择和服务健康检查。",
+      "source": "./vllm-ascend-server",
+      "category": "development"
+    },
+    {
       "name": "vllm-bench-serve",
       "description": "vLLM 推理服务在线性能压测与自动寻优。支持单次/批量/自动寻优模式，结果聚合对比，在 TTFT/TPOT/P99/成功率等 SLO 约束下搜索最优并发/吞吐。",
       "source": "./vllm-bench-serve",
