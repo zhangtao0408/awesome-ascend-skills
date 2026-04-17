@@ -24,7 +24,85 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
     return frontmatter, body
 
 
-CATEGORY_DIRS = {"base", "inference", "training", "profiling", "ops", "knowledge"}
+LOCAL_DOMAIN_DIRS = {
+    "base",
+    "inference",
+    "training",
+    "profiling",
+    "ops",
+    "knowledge",
+    "ai-for-science",
+}
+
+PREFIX_DOMAIN_DIRS = {"ai-for-science"}
+SKIP_SKILL_PREFIXES = {("tests", "fixtures")}
+
+
+def should_skip_skill_file(rel_parts: tuple[str, ...]) -> bool:
+    return ".worktrees" in rel_parts or rel_parts[:2] in SKIP_SKILL_PREFIXES
+
+
+def validate_skill_name(actual_name: str, rel_parts: tuple[str, ...]) -> list[str]:
+    errors = []
+
+    if ".agents" in rel_parts:
+        expected_name = rel_parts[-2]
+        if actual_name != expected_name:
+            errors.append(
+                f"Agent skill name '{actual_name}' doesn't match directory '{expected_name}'"
+            )
+        return errors
+
+    if rel_parts[0] == "external":
+        expected_prefix = f"external-{rel_parts[1]}-"
+        if not actual_name.startswith(expected_prefix):
+            errors.append(
+                f"External skill name '{actual_name}' should start with '{expected_prefix}'"
+            )
+        return errors
+
+    if rel_parts[0] != "skills":
+        errors.append(
+            "Local skills must live under 'skills/<domain>/...'; found local SKILL.md outside skills/"
+        )
+        return errors
+
+    if len(rel_parts) < 4:
+        errors.append(
+            "Invalid local skill path under skills/: expected skills/<domain>/<skill>/SKILL.md"
+        )
+        return errors
+
+    domain = rel_parts[1]
+    if domain not in LOCAL_DOMAIN_DIRS:
+        errors.append(
+            f"Unknown local skill domain '{domain}' under skills/; expected one of {sorted(LOCAL_DOMAIN_DIRS)}"
+        )
+        return errors
+
+    expected_name = rel_parts[-2]
+    is_leaf = len(rel_parts) == 4
+
+    if is_leaf:
+        if domain in PREFIX_DOMAIN_DIRS:
+            expected_prefix = f"{domain}-"
+            if not actual_name.startswith(expected_prefix):
+                errors.append(
+                    f"Local skill name '{actual_name}' should start with '{expected_prefix}'"
+                )
+        elif actual_name != expected_name:
+            errors.append(
+                f"Local skill name '{actual_name}' doesn't match directory '{expected_name}'"
+            )
+        return errors
+
+    prefix_folder = domain if domain in PREFIX_DOMAIN_DIRS else rel_parts[2]
+    expected_prefix = f"{prefix_folder}-"
+    if not actual_name.startswith(expected_prefix):
+        errors.append(
+            f"Nested skill name '{actual_name}' should start with '{expected_prefix}'"
+        )
+    return errors
 
 
 def validate_skill_file(skill_path: Path, repo_root: Path) -> tuple[list, list]:
@@ -48,50 +126,12 @@ def validate_skill_file(skill_path: Path, repo_root: Path) -> tuple[list, list]:
             f"Description is too short ({len(frontmatter['description'])} chars) - may affect agent matching"
         )
 
-    expected_name = skill_path.parent.name
     actual_name = frontmatter.get("name", "")
 
     rel_path = skill_path.relative_to(repo_root)
     rel_parts = rel_path.parts
 
-    is_in_agents = ".agents" in rel_parts
-    depth = len(rel_parts) - 1  # -1 for SKILL.md itself
-
-    is_categorized_leaf = (
-        depth == 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
-    )
-    is_categorized_nested = (
-        depth > 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
-    )
-    is_nested_skill = (
-        depth > 1
-        and not is_in_agents
-        and not is_categorized_leaf
-        and not is_categorized_nested
-    )
-
-    if is_categorized_leaf:
-        if actual_name != expected_name:
-            errors.append(
-                f"Categorized leaf skill name '{actual_name}' doesn't match directory '{expected_name}'"
-            )
-    elif is_categorized_nested:
-        folder_name = rel_parts[1]
-        if not actual_name.startswith(f"{folder_name}-"):
-            errors.append(
-                f"Categorized nested skill name '{actual_name}' should start with '{folder_name}-'"
-            )
-    elif is_nested_skill:
-        folder_name = rel_parts[0]
-        if not actual_name.startswith(f"{folder_name}-"):
-            errors.append(
-                f"Nested skill name '{actual_name}' should start with '{folder_name}-' (format: folder-skillname)"
-            )
-    else:
-        if actual_name != expected_name:
-            errors.append(
-                f"Skill name '{actual_name}' doesn't match directory '{expected_name}'"
-            )
+    errors.extend(validate_skill_name(actual_name, rel_parts))
 
     if "[TODO:" in body or "[TODO]" in body:
         warnings.append("Contains TODO placeholder - should be completed before merge")
@@ -105,10 +145,11 @@ def validate_skill_file(skill_path: Path, repo_root: Path) -> tuple[list, list]:
 def main():
     repo_root = Path(__file__).parent.parent
 
-    skill_files = list(repo_root.glob("**/SKILL.md"))
-
-    # Exclude .worktrees directory (git worktrees should not be validated)
-    skill_files = [f for f in skill_files if ".worktrees" not in f.parts]
+    skill_files = [
+        f
+        for f in repo_root.glob("**/SKILL.md")
+        if not should_skip_skill_file(f.relative_to(repo_root).parts)
+    ]
 
     if not skill_files:
         print("❌ No SKILL.md files found!")

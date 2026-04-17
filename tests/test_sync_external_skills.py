@@ -165,10 +165,17 @@ def test_prune_removed_source_skills_removes_stale_same_source_entries(
 def test_get_local_skills_finds_nested_local_skills_and_skips_external(
     tmp_path: Path,
 ) -> None:
-    write_skill(tmp_path / "inference" / "atc-model-converter", "atc-model-converter")
     write_skill(
-        tmp_path / "training" / "mindspeed-llm" / "mindspeed-llm-training",
-        "training-mindspeed-llm-training",
+        tmp_path / "skills" / "inference" / "atc-model-converter",
+        "atc-model-converter",
+    )
+    write_skill(
+        tmp_path / "skills" / "training" / "mindspeed-llm" / "mindspeed-llm-training",
+        "mindspeed-llm-training",
+    )
+    write_skill(
+        tmp_path / "skills" / "ai-for-science" / "models" / "ankh",
+        "ai-for-science-ankh-ascend-npu-skill",
     )
     write_skill(
         tmp_path / "external" / "source-a" / "external-skill",
@@ -187,5 +194,6 @@ def test_get_local_skills_finds_nested_local_skills_and_skips_external(
 
     assert "atc-model-converter" in local_skills
     assert "mindspeed-llm-training" in local_skills
+    assert "ai-for-science-ankh-ascend-npu-skill" in local_skills
     assert "external-skill" not in local_skills
     assert "local-agent-skill" not in local_skills

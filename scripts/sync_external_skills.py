@@ -201,6 +201,18 @@ def parse_skill_md(skill_path: Path) -> Dict:
     return {}
 
 
+def parse_skill_name_from_file(skill_md: Path) -> str:
+    """Read a SKILL.md file and return its frontmatter name."""
+    content = skill_md.read_text(encoding="utf-8")
+    if not content.startswith("---"):
+        return ""
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return ""
+    frontmatter = yaml.safe_load(parts[1]) or {}
+    return str(frontmatter.get("name", "")).strip()
+
+
 def find_skills(repo_path: Path, source: ExternalSource) -> List[Skill]:
     """Find all skills (dirs with SKILL.md) in repo.
 
@@ -231,14 +243,15 @@ def find_skills(repo_path: Path, source: ExternalSource) -> List[Skill]:
 
 
 def get_local_skills() -> Set[str]:
-    """Get local skill directory names outside external/ and hidden system dirs."""
-    excluded_parts = {"external", ".agents", ".git", ".worktrees"}
+    """Get canonical local skill names under skills/ for conflict detection."""
     skills = set()
     for skill_md in Path(".").glob("**/SKILL.md"):
         rel_parts = skill_md.parts
-        if any(part in excluded_parts for part in rel_parts):
+        if ".worktrees" in rel_parts or rel_parts[0] != "skills":
             continue
-        skills.add(skill_md.parent.name)
+        skill_name = parse_skill_name_from_file(skill_md)
+        if skill_name:
+            skills.add(skill_name)
     return skills
 
 
@@ -333,7 +346,9 @@ def detect_conflicts(
     """Check if skill conflicts with local or synced skills."""
     if skill.name in local_skills:
         return ConflictInfo(
-            skill_name=skill.name, local_path=f"./{skill.name}", external_source="local"
+            skill_name=skill.name,
+            local_path=f"./skills/... ({skill.name})",
+            external_source="local",
         )
     conflict_sources = synced_skills.get(skill.name, set()) - {skill.source.name}
     if conflict_sources:

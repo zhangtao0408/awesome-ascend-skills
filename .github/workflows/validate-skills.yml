@@ -24,7 +24,7 @@ jobs:
       - name: Check frontmatter
         run: |
           echo "=== Checking all SKILL.md files have valid frontmatter ==="
-          find . -name "SKILL.md" | while read f; do
+          find . -name "SKILL.md" ! -path "./tests/fixtures/*" | while read f; do
             echo "Checking: $f"
             # Check YAML frontmatter exists
             if ! head -1 "$f" | grep -q "^---$"; then
@@ -50,58 +50,105 @@ jobs:
           from pathlib import Path
           import re
 
-          CATEGORY_DIRS = {'base', 'inference', 'training', 'profiling', 'ops', 'knowledge'}
+          LOCAL_DOMAIN_DIRS = {
+              'base',
+              'inference',
+              'training',
+              'profiling',
+              'ops',
+              'knowledge',
+              'ai-for-science',
+          }
+          PREFIX_DOMAIN_DIRS = {'ai-for-science'}
 
           def parse_name(skill_path: Path) -> str:
               content = skill_path.read_text(encoding='utf-8')
               match = re.search(r'^name:\s*(.+)$', content, re.MULTILINE)
               return match.group(1).strip() if match else ''
 
+          def validate_name(skill_path: Path, actual_name: str) -> str | None:
+              rel_parts = skill_path.parts
+
+              if '.agents' in rel_parts:
+                  expected_name = rel_parts[-2]
+                  if actual_name != expected_name:
+                      return (
+                          f"Agent skill name '{actual_name}' doesn't match directory '{expected_name}' "
+                          f"(file: {skill_path})"
+                      )
+                  return None
+
+              if rel_parts[0] == 'external':
+                  expected_prefix = f'external-{rel_parts[1]}-'
+                  if not actual_name.startswith(expected_prefix):
+                      return (
+                          f"External skill name '{actual_name}' should start with '{expected_prefix}' "
+                          f"(file: {skill_path})"
+                      )
+                  return None
+
+              if rel_parts[0] != 'skills':
+                  return (
+                      'Local skills must live under skills/<domain>/...; '
+                      f'found local SKILL.md outside skills/ (file: {skill_path})'
+                  )
+
+              if len(rel_parts) < 4:
+                  return (
+                      'Invalid local skill path under skills/: expected '
+                      f'skills/<domain>/<skill>/SKILL.md (file: {skill_path})'
+                  )
+
+              domain = rel_parts[1]
+              if domain not in LOCAL_DOMAIN_DIRS:
+                  return (
+                      f"Unknown local skill domain '{domain}' under skills/ "
+                      f"(file: {skill_path})"
+                  )
+
+              expected_name = rel_parts[-2]
+              is_leaf = len(rel_parts) == 4
+
+              if is_leaf:
+                  if domain in PREFIX_DOMAIN_DIRS:
+                      expected_prefix = f'{domain}-'
+                      if not actual_name.startswith(expected_prefix):
+                          return (
+                              f"Local skill name '{actual_name}' should start with '{expected_prefix}' "
+                              f"(file: {skill_path})"
+                          )
+                      return None
+                  if actual_name != expected_name:
+                      return (
+                          f"Local skill name '{actual_name}' doesn't match directory '{expected_name}' "
+                          f"(file: {skill_path})"
+                      )
+                  return None
+
+              prefix_folder = domain if domain in PREFIX_DOMAIN_DIRS else rel_parts[2]
+              expected_prefix = f'{prefix_folder}-'
+              if not actual_name.startswith(expected_prefix):
+                  return (
+                      f"Nested skill name '{actual_name}' should start with '{expected_prefix}' "
+                      f"(file: {skill_path})"
+                  )
+              return None
+
           repo_root = Path('.')
-          skill_files = [f for f in repo_root.glob('**/SKILL.md') if '.worktrees' not in f.parts]
+          skill_files = [
+              f
+              for f in repo_root.glob('**/SKILL.md')
+              if '.worktrees' not in f.parts and f.parts[:2] != ('tests', 'fixtures')
+          ]
 
           print('=== Verifying skill names follow repository rules ===')
           for skill_path in sorted(skill_files):
               actual_name = parse_name(skill_path)
-              rel_parts = skill_path.relative_to(repo_root).parts
-              is_in_agents = '.agents' in rel_parts
-              depth = len(rel_parts) - 1
-              is_categorized_leaf = depth == 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
-              is_categorized_nested = depth > 2 and rel_parts[0] in CATEGORY_DIRS and not is_in_agents
-              is_nested_skill = depth > 1 and not is_in_agents and not is_categorized_leaf and not is_categorized_nested
-
-              if is_categorized_leaf:
-                  expected_name = skill_path.parent.name
-                  if actual_name != expected_name:
-                      raise SystemExit(
-                          f"Categorized leaf skill name '{actual_name}' doesn't match directory '{expected_name}' "
-                          f"(file: {skill_path})"
-                      )
-                  print(f"OK: {skill_path} -> name: {actual_name} (categorized leaf)")
-              elif is_categorized_nested:
-                  folder_name = rel_parts[1]
-                  if not actual_name.startswith(f'{folder_name}-'):
-                      raise SystemExit(
-                          f"Categorized nested skill name '{actual_name}' should start with '{folder_name}-' "
-                          f"(file: {skill_path})"
-                      )
-                  print(f"OK: {skill_path} -> name: {actual_name} (categorized nested)")
-              elif is_nested_skill:
-                  folder_name = rel_parts[0]
-                  if not actual_name.startswith(f'{folder_name}-'):
-                      raise SystemExit(
-                          f"Nested skill name '{actual_name}' should start with '{folder_name}-' "
-                          f"(file: {skill_path})"
-                      )
-                  print(f"OK: {skill_path} -> name: {actual_name} (nested rule)")
-              else:
-                  expected_name = skill_path.parent.name
-                  if actual_name != expected_name:
-                      raise SystemExit(
-                          f"Skill name '{actual_name}' doesn't match directory '{expected_name}' "
-                          f"(file: {skill_path})"
-                      )
-                  print(f"OK: {skill_path} -> name: {actual_name} (exact match)")
+              rel_skill_path = skill_path.relative_to(repo_root)
+              error = validate_name(rel_skill_path, actual_name)
+              if error:
+                  raise SystemExit(error)
+              print(f"OK: {rel_skill_path} -> name: {actual_name}")
 
           print('All skill names follow repository rules!')
           PY
@@ -109,7 +156,7 @@ jobs:
       - name: Check for broken internal links
         run: |
           echo "=== Checking for broken internal links ==="
-          find . -name "SKILL.md" | while read f; do
+          find . -name "SKILL.md" ! -path "./tests/fixtures/*" | while read f; do
             dir=$(dirname "$f")
             # Extract relative links like [text](../path/)
             grep -oE '\]\([^)]+\.md\)' "$f" | tr -d '[]()' | while read link; do
@@ -151,6 +198,7 @@ jobs:
               'ascend-profiling',
               'ascend-ops',
               'ascend-ai-for-science',
+              'skills/README.md',
               'docs/governance/skill-governance.md',
               '.github/ISSUE_TEMPLATE/skill-feedback.yml',
           ]
@@ -170,6 +218,7 @@ jobs:
           governance_checks = [
               '## 2. Skill Taxonomy',
               '## 8. Governance Checklist',
+              'skills/<domain>/...',
               'decision tree / Quick Start',
           ]
           for token in governance_checks:

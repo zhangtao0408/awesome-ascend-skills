@@ -42,7 +42,7 @@
 最细粒度的技能单元，或承担任务分流职责的入口 skill。
 
 - leaf skill：解决单一问题，如 `npu-smi`、`hccl-test`
-- router skill：负责识别任务并分流到子 skill，如 `ai-for-science/ai4s-main`
+- router skill：负责识别任务并分流到子 skill，如 `skills/ai-for-science/ai4s-main`
 - 设计原则：
   - leaf skill 的目标必须明确且边界清晰
   - router skill 必须说明“何时分流、分流到哪里、不会做什么”
@@ -69,7 +69,7 @@
 | `training` | 训练、通信、训练链路 | `hccl-test`、`torch-npu-comm-test`、`mindspeed-llm-*` |
 | `profiling` | Profiling 采集与性能分析 | `profiling-analysis`、`mindspeed-llm-train-profiler` |
 | `ops` | 算子开发、迁移与调优 | `ascendc`、`ascend-opplugin`、`triton-ascend-migration` |
-| `ai-for-science` | AI for Science 专项方向 | `ai-for-science/*` |
+| `ai-for-science` | AI for Science 专项方向 | `skills/ai-for-science/*` |
 | `knowledge` | 工程案例、排障知识沉淀 | `github-issue-summary`、`github-issue-rca` |
 
 新增 skill 时，应先判断功能域，再决定角色类型。
@@ -78,15 +78,15 @@
 
 为降低仓库开发时的查找成本，仓库应提供按功能域组织的开发入口目录：
 
-- `base/`
-- `inference/`
-- `training/`
-- `profiling/`
-- `ops/`
-- `knowledge/`
-- `ai-for-science/`
+- `skills/base/`
+- `skills/inference/`
+- `skills/training/`
+- `skills/profiling/`
+- `skills/ops/`
+- `skills/knowledge/`
+- `skills/ai-for-science/`
 
-当前仓库已采用分类目录承载本地 skills，并要求：
+当前仓库已采用 `skills/<domain>/...` 承载本地 skills，并要求：
 
 1. README 中有明确的开发目录入口
 2. 每个分类目录与其承载的实际 skill 保持一致
@@ -107,11 +107,10 @@
 
 - 官方 bundle：`ascend-<domain>`
 - 领域 skill set：优先使用 `-skills` 后缀
-- 分类入口目录：优先使用功能域名，如 `base/`、`inference/`、`ops/`
-- 根目录 leaf skill：保持 `lowercase-with-hyphens`
-- 分类目录下的 leaf skill：仍使用原始 leaf 名称，不额外追加分类前缀
-- 分类目录下的 nested skill：名称以前一层领域子目录为前缀，不额外追加分类目录前缀
-- 嵌套 skill：遵循仓库校验器要求，名称以前缀目录名开头
+- 本地入口目录：统一位于 `skills/` 下，如 `skills/base/`、`skills/inference/`、`skills/ops/`
+- 本地 leaf skill：仍使用原始 leaf 名称，不额外追加分类前缀
+- 本地 nested skill：名称以前一层领域子目录为前缀，不额外追加 `skills-` 这类路径前缀
+- `skills/ai-for-science/` 下的本地 skill：保持 `ai-for-science-*` 语义前缀
 - external skill：保持同步命名，不在本仓重命名
 
 ### 4.2 何时新建 bundle
@@ -165,6 +164,7 @@
 - 每个分类入口目录都应有 `README.md`
 - 分类入口目录中的说明必须指向当前实际 skill 路径
 - 如果目录结构发生迁移，README、marketplace、CI 与交叉链接必须在同一轮更新中完成
+- root 不应再承载本地 `SKILL.md`；本地 skill 的唯一正式路径为 `skills/...`
 
 ### 5.3 Router Skill 额外要求
 

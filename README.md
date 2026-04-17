@@ -30,6 +30,12 @@
 - 官方推荐安装包：面向新人和常见任务场景的分层 bundle，如 `ascend-base`、`ascend-inference`
 - 外部同步 skills：从外部 Ascend skill 仓库自动同步的扩展能力
 
+当前目录模型：
+
+- 所有本地 skills 统一位于 `skills/`
+- `skills/<domain>/...` 是本地 skill 的唯一正式路径
+- `external/` 是外部同步 skills 的独立目录，不参与本地路径规则
+
 如果你是第一次使用，建议不要直接从平铺 skill 列表开始看，而是先看下面的 `快速开始` 和 `安装指南`。
 
 ---
@@ -108,24 +114,18 @@ npx skills add ascend-ai-coding/awesome-ascend-skills
 
 ## 开发目录
 
-如果你是来维护仓库、补充 skill、或做目录级开发，建议不要直接在 repo root 平铺查找，而是先从下面这些**分类入口目录**进入：
+如果你是来维护仓库、补充 skill、或做目录级开发，建议先从 root 下这两个入口进入：
 
 | 分类入口 | 适合维护什么 |
 |------|------|
-| [`base/`](base/) | 基础环境、设备、容器、PyTorch NPU 基础能力 |
-| [`inference/`](inference/) | 推理、模型转换、量化、评测 |
-| [`training/`](training/) | 训练链路、通信、MindSpeed-LLM |
-| [`profiling/`](profiling/) | Profiling 采集与性能分析 |
-| [`ops/`](ops/) | 算子开发、迁移与调优 |
-| [`knowledge/`](knowledge/) | 工程案例、issue 分析、知识沉淀 |
-| [`ai-for-science/`](ai-for-science/) | AI for Science 专项域 |
+| [`skills/`](skills/) | 所有本地 skills 的统一入口，按 `base / inference / training / profiling / ops / knowledge / ai-for-science` 分类组织 |
 | [`external/`](external/) | 外部同步 skills |
 
 说明：
 
-- `base/`、`inference/`、`training/`、`profiling/`、`ops/`、`knowledge/` 现在已经开始承载真实 skill 目录。
-- `ai-for-science/` 继续作为专项域目录保留；`external/` 继续作为外部同步目录保留。
-- 后续如果继续演进，优先在对应分类目录下新增或维护 skill，而不是回到 root 平铺。
+- 所有本地 skill 目录都已下沉到 `skills/` 下。
+- 进入 [`skills/README.md`](skills/README.md) 可以继续按功能域进入具体目录。
+- 后续新增或维护本地 skill 时，应统一放在 `skills/<domain>/...`，而不是回到 root 新增平行目录。
 
 ### 官方推荐安装包
 
@@ -167,9 +167,9 @@ npx skills add ascend-ai-coding/awesome-ascend-skills
 git clone https://github.com/ascend-ai-coding/awesome-ascend-skills.git
 
 # 复制基础环境相关 skills 到项目目录
-cp -r awesome-ascend-skills/base/npu-smi your-project/.agents/skills/
-cp -r awesome-ascend-skills/base/ascend-docker your-project/.agents/skills/
-cp -r awesome-ascend-skills/base/torch_npu your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/base/npu-smi your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/base/ascend-docker your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/base/torch_npu your-project/.agents/skills/
 ```
 
 手动安装时，可按上面的“官方推荐安装包”表格选择对应 skill 目录复制。
@@ -177,11 +177,11 @@ cp -r awesome-ascend-skills/base/torch_npu your-project/.agents/skills/
 例如，手动安装 `ascend-ops` 时，至少复制以下目录：
 
 ```bash
-cp -r awesome-ascend-skills/base/torch_npu your-project/.agents/skills/
-cp -r awesome-ascend-skills/ops/ascendc your-project/.agents/skills/
-cp -r awesome-ascend-skills/ops/ascend-opplugin your-project/.agents/skills/
-cp -r awesome-ascend-skills/ops/triton-ascend-migration your-project/.agents/skills/
-cp -r awesome-ascend-skills/ops/npu-op-benchmark your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/base/torch_npu your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/ops/ascendc your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/ops/ascend-opplugin your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/ops/triton-ascend-migration your-project/.agents/skills/
+cp -r awesome-ascend-skills/skills/ops/npu-op-benchmark your-project/.agents/skills/
 ```
 
 **方式二：全局安装**
@@ -221,53 +221,53 @@ cp -r awesome-ascend-skills/ops/npu-op-benchmark your-project/.agents/skills/
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [npu-smi](base/npu-smi/SKILL.md) | 运维 | NPU 设备管理：健康状态查询、温度/功耗监控、固件升级、虚拟化配置、证书管理 |
-| [ascend-docker](base/ascend-docker/SKILL.md) | 运维 | Docker 容器配置：NPU 设备映射、卷挂载、开发环境隔离 |
-| [torch_npu](base/torch_npu/SKILL.md) | 开发 | PyTorch 昇腾扩展：环境检查、部署指引、PyTorch 迁移到 NPU 的完整指南 |
+| [npu-smi](skills/base/npu-smi/SKILL.md) | 运维 | NPU 设备管理：健康状态查询、温度/功耗监控、固件升级、虚拟化配置、证书管理 |
+| [ascend-docker](skills/base/ascend-docker/SKILL.md) | 运维 | Docker 容器配置：NPU 设备映射、卷挂载、开发环境隔离 |
+| [torch_npu](skills/base/torch_npu/SKILL.md) | 开发 | PyTorch 昇腾扩展：环境检查、部署指引、PyTorch 迁移到 NPU 的完整指南 |
 
 ### 推理与模型转换
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [atc-model-converter](inference/atc-model-converter/SKILL.md) | 开发 | ATC 模型转换：ONNX 转 .om 格式、OM 推理、精度对比、YOLO 端到端部署 |
-| [vllm-ascend](inference/vllm-ascend/SKILL.md) | 开发 | vLLM 推理引擎：离线批推理、OpenAI 兼容 API、量化模型服务、分布式推理 |
-| [msmodelslim](inference/msmodelslim/SKILL.md) | 开发 | 模型压缩量化：W4A8/W8A8/W8A8S 量化、MoE/多模态模型支持、精度自动调优 |
-| [ais-bench](inference/ais-bench/SKILL.md) | 测试 | AI 模型评估工具：精度评估、性能压测、Function Call |
-| [diffusers-ascend-skills](inference/diffusers-ascend/diffusers-ascend-pipeline/SKILL.md) | 技能包 | Diffusers 环境、权重准备与推理 |
-| [wan-ascend-adaptation](inference/wan-ascend-adaptation/SKILL.md) | 开发 | Wan 系列视频生成模型及相似扩散框架的昇腾适配指南 |
+| [atc-model-converter](skills/inference/atc-model-converter/SKILL.md) | 开发 | ATC 模型转换：ONNX 转 .om 格式、OM 推理、精度对比、YOLO 端到端部署 |
+| [vllm-ascend](skills/inference/vllm-ascend/SKILL.md) | 开发 | vLLM 推理引擎：离线批推理、OpenAI 兼容 API、量化模型服务、分布式推理 |
+| [msmodelslim](skills/inference/msmodelslim/SKILL.md) | 开发 | 模型压缩量化：W4A8/W8A8/W8A8S 量化、MoE/多模态模型支持、精度自动调优 |
+| [ais-bench](skills/inference/ais-bench/SKILL.md) | 测试 | AI 模型评估工具：精度评估、性能压测、Function Call |
+| [diffusers-ascend-skills](skills/inference/diffusers-ascend/diffusers-ascend-pipeline/SKILL.md) | 技能包 | Diffusers 环境、权重准备与推理 |
+| [wan-ascend-adaptation](skills/inference/wan-ascend-adaptation/SKILL.md) | 开发 | Wan 系列视频生成模型及相似扩散框架的昇腾适配指南 |
 
 ### 训练与通信
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [hccl-test](training/hccl-test/SKILL.md) | 测试 | HCCL 集合通信性能测试：带宽测试、AllReduce/AllGather 等基准测试 |
-| [torch-npu-comm-test](training/torch-npu-comm-test/SKILL.md) | 测试 | 通过 torch.distributed 测试通信算子性能，贴近真实训练场景 |
-| [mindspeed-llm-skills](training/mindspeed-llm/mindspeed-llm-pipeline/SKILL.md) | 技能包 | MindSpeed-LLM 环境搭建、数据预处理、权重转换、训练启动 |
-| [training-mfu-calculator](profiling/training-mfu-calculator/SKILL.md) | 分析 | 大模型训练 MFU 计算、FLOPs 分析与性能报告 |
+| [hccl-test](skills/training/hccl-test/SKILL.md) | 测试 | HCCL 集合通信性能测试：带宽测试、AllReduce/AllGather 等基准测试 |
+| [torch-npu-comm-test](skills/training/torch-npu-comm-test/SKILL.md) | 测试 | 通过 torch.distributed 测试通信算子性能，贴近真实训练场景 |
+| [mindspeed-llm-skills](skills/training/mindspeed-llm/mindspeed-llm-pipeline/SKILL.md) | 技能包 | MindSpeed-LLM 环境搭建、数据预处理、权重转换、训练启动 |
+| [training-mfu-calculator](skills/profiling/training-mfu-calculator/SKILL.md) | 分析 | 大模型训练 MFU 计算、FLOPs 分析与性能报告 |
 
 ### Profiling 与性能分析
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [profiling-analysis](profiling/profiling-analysis/SKILL.md) | 分析 | Profiling 性能分析技能集：识别下发、通信、计算瓶颈 |
-| [mindspeed-llm-train-profiler](profiling/mindspeed-llm-train-profiler/SKILL.md) | 分析 | 自动化完成 MindSpeed-LLM 训练 Profiling 数据采集 |
-| [npu-op-benchmark](ops/npu-op-benchmark/SKILL.md) | 测试 | 昇腾 NPU 算子性能基准测试 |
+| [profiling-analysis](skills/profiling/profiling-analysis/SKILL.md) | 分析 | Profiling 性能分析技能集：识别下发、通信、计算瓶颈 |
+| [mindspeed-llm-train-profiler](skills/profiling/mindspeed-llm-train-profiler/SKILL.md) | 分析 | 自动化完成 MindSpeed-LLM 训练 Profiling 数据采集 |
+| [npu-op-benchmark](skills/ops/npu-op-benchmark/SKILL.md) | 测试 | 昇腾 NPU 算子性能基准测试 |
 
 ### 算子开发与迁移
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [ascendc](ops/ascendc/SKILL.md) | 开发 | AscendC 算子开发：Transformer 算子实现、CANN API 示例 |
-| [ascend-opplugin](ops/ascend-opplugin/SKILL.md) | 开发 | op-plugin 环境安装与 torch_npu 自定义算子接入 |
-| [triton-ascend-migration](ops/triton-ascend-migration/SKILL.md) | 开发 | GPU/CUDA Triton 算子迁移到 Triton-Ascend |
+| [ascendc](skills/ops/ascendc/SKILL.md) | 开发 | AscendC 算子开发：Transformer 算子实现、CANN API 示例 |
+| [ascend-opplugin](skills/ops/ascend-opplugin/SKILL.md) | 开发 | op-plugin 环境安装与 torch_npu 自定义算子接入 |
+| [triton-ascend-migration](skills/ops/triton-ascend-migration/SKILL.md) | 开发 | GPU/CUDA Triton 算子迁移到 Triton-Ascend |
 
 ### 工程知识与专项方向
 
 | Skill | 类别 | 描述 |
 |------|------|------|
-| [github-issue-summary](knowledge/github-issue-summary/SKILL.md) | 开发 | 从已关闭 issue 生成故障排查案例、根因分析、经验总结 |
-| [github-issue-rca](knowledge/github-issue-rca/SKILL.md) | 开发 | GitHub Issue 根因分析与调查方向评估 |
-| [ai-for-science](ai-for-science/ai4s-main/SKILL.md) | 开发 | AI for Science 总入口：负责 Profiling 采集、模型迁移、路线选择与分流 |
+| [github-issue-summary](skills/knowledge/github-issue-summary/SKILL.md) | 开发 | 从已关闭 issue 生成故障排查案例、根因分析、经验总结 |
+| [github-issue-rca](skills/knowledge/github-issue-rca/SKILL.md) | 开发 | GitHub Issue 根因分析与调查方向评估 |
+| [ai-for-science](skills/ai-for-science/ai4s-main/SKILL.md) | 开发 | AI for Science 总入口：负责 Profiling 采集、模型迁移、路线选择与分流 |
 
 ## 外部 Skills (External Skills)
 
@@ -369,7 +369,7 @@ keywords:                            # 可选，推荐用于中文/双语 Skill
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
-| `name` | 是 | root skill 与分类目录下 leaf skill 都必须与叶子目录名一致；分类目录下 nested skill 按领域子目录前缀命名；真正专项 nested skill 按顶层目录前缀规则命名 |
+| `name` | 是 | `skills/<domain>/<leaf>/` 下的 leaf skill 与叶子目录名一致；`skills/<domain>/<group>/...` 下的 nested skill 按领域子目录前缀命名；`skills/ai-for-science/` 保持 `ai-for-science-*` 前缀 |
 | `description` | 是 | 至少 20 个字符，包含使用场景和关键词 |
 | `keywords` | 否 | 推荐添加，用于中文关键词匹配 |
 
@@ -383,9 +383,11 @@ keywords:                            # 可选，推荐用于中文/双语 Skill
 ### 目录结构规范
 
 ```
-<domain>/                            # 分类目录，如 base/ inference/ ops/
-├── README.md                        # 分类说明与入口
-└── skill-name/                      # 真实 skill 目录
+skills/
+├── README.md                        # 本地 skills 总入口
+├── <domain>/                        # 分类目录，如 base/ inference/ ops/
+│   ├── README.md                    # 分类说明与入口
+│   └── skill-name/                  # 真实 skill 目录
 
 skill-name/                          # 具体 skill 目录
 ├── SKILL.md                         # 必需：核心内容
@@ -402,17 +404,18 @@ skill-name/                          # 具体 skill 目录
 
 当前目录规则：
 
-- `base/`、`inference/`、`training/`、`profiling/`、`ops/`、`knowledge/` 既是开发入口目录，也承载对应真实 skill
-- `ai-for-science/` 作为专项域目录单独保留
-- 后续新增或重构 skill 时，应优先归入与其功能域一致的分类目录
+- `skills/` 是所有本地 skills 的唯一正式入口
+- `skills/<domain>/README.md` 既是开发入口，也说明该域下的实际 skill
+- `external/` 保持为外部同步目录，不纳入本地 `skills/...` 命名与路径规则
+- 后续新增或重构本地 skill 时，应优先归入与其功能域一致的 `skills/<domain>/...`
 
 ### 命名规范
 
 | 元素 | 规范 | 示例 |
 |------|------|------|
 | 目录名 | `小写-连字符` | `npu-smi`、`hccl-test` |
-| Root / 分类目录下 leaf skill 名 | 匹配叶子目录名 | `name: npu-smi` |
-| 真正 nested skill 名 | 以顶层专项目录为前缀 | `name: ai-for-science-ankh-ascend-npu-skill` |
+| 本地 leaf skill 名 | 匹配叶子目录名 | `skills/knowledge/github-issue-rca -> name: github-issue-rca` |
+| 本地 nested skill 名 | 以前一层领域子目录为前缀，`ai-for-science` 保持专项前缀 | `name: mindspeed-llm-training`、`name: ai-for-science-ankh-ascend-npu-skill` |
 | 脚本文件 | `kebab-case.sh` 或 `snake_case.py` | `npu-health-check.sh` |
 | 参考文档 | `小写-连字符.md` | `device-queries.md` |
 | 配置文件 | `kebab-case.yaml` | `quant_config_w8a8.yaml` |
@@ -422,7 +425,8 @@ skill-name/                          # 具体 skill 目录
 提交前请检查：
 
 - [ ] 已确认该 skill / bundle 的角色类型与功能域
-- [ ] `name` 与叶子目录名一致（真正 nested skill 除外，按顶层目录前缀规则）
+- [ ] 本地 skill 位于 `skills/<domain>/...`
+- [ ] `name` 与叶子目录名一致，或符合对应 nested / `ai-for-science` 命名规则
 - [ ] `description` 不少于 20 个字符
 - [ ] SKILL.md 有有效的 YAML frontmatter（以 `---` 开始和结束）
 - [ ] 内部链接可正常访问
@@ -490,10 +494,9 @@ sources:
 ### 开发流程
 
 1. **创建 Skill 目录**：
-   ```bash
-   mkdir -p your-skill-name
-   cp skills/template/SKILL.md your-skill-name/
-   ```
+```bash
+mkdir -p skills/<domain>/your-skill-name
+```
 
 2. **编写 SKILL.md**：按照[贡献指南](#贡献指南)的规范编写
 
@@ -515,7 +518,7 @@ sources:
 
 ### PR 模板
 
-提交 PR 时，请参考：```./guideline/.github/PULL_REQUEST_TEMPLATE.md```
+提交 PR 时，请参考：`.github/PULL_REQUEST_TEMPLATE.md`
 
 ### 审核流程
 
