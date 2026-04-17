@@ -87,6 +87,12 @@
       "category": "development"
     },
     {
+      "name": "remote-server-guide",
+      "description": "远程服务器 SSH 连接、容器管理与命令远程执行指南。覆盖多种认证方式（SSH key、sshpass、Paramiko、Fabric、tmux 交互）、Docker 容器连接、文件传输与故障排查。",
+      "source": "./remote-server-guide",
+      "category": "operations"
+    },
+    {
       "name": "vllm-ascend-server",
       "description": "在昇腾 NPU 上部署 vLLM 推理服务。支持本地/远程部署、裸金属/容器/Docker 镜像，自动模型发现、量化检测、张量并行配置、graph/eager 模式选择和服务健康检查。",
       "source": "./vllm-ascend-server",
