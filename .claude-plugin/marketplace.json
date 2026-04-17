@@ -103,7 +103,7 @@
       "description": "vLLM 推理服务在线性能压测与自动寻优。支持单次/批量/自动寻优模式，结果聚合对比，在 TTFT/TPOT/P99/成功率等 SLO 约束下搜索最优并发/吞吐。",
       "source": "./vllm-bench-serve",
       "category": "testing"
-    }，
+    },
     {
       "name": "npu-docker-launcher",
       "description": "在昇腾 NPU 服务器上一键启动 Docker 容器。收集用户需求并执行 docker run 命令，自动配置 NPU 设备挂载、网络、卷挂载和环境变量。",
