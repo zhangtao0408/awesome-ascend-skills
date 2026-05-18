@@ -31,16 +31,31 @@
 
 ## 安装指南
 
+### 网页索引
+
+可以通过静态网页快速搜索、查看和安装 Skills：
+
+- GitHub Pages: https://ascend-ai-coding.github.io/awesome-ascend-skills/
+- skills.sh: https://skills.sh/ascend-ai-coding/awesome-ascend-skills
+
+网页数据由 `scripts/build_web_data.py` 从仓库内的 `SKILL.md` 和 `.claude-plugin/marketplace.json` 生成：
+
+```bash
+python3 scripts/build_web_data.py
+```
+
+GitHub Pages workflow 会在当前分支内直接读取这些文件并部署 `docs/`。
+
 ### 自动安装
 
 使用 `npx` 一键安装到所有支持的 AI 编程工具：
 
 ```bash
 # 安装全部 Skills
-npx skills add ascend-ai-coding/awesome-ascend-skills
+npx skills add ascend-ai-coding/awesome-ascend-skills -s *
 
 # 安装单个 Skill
-npx skills add ascend-ai-coding/awesome-ascend-skills --skill npu-smi
+npx skills add ascend-ai-coding/awesome-ascend-skills -s npu-smi
 ```
 
 支持的 AI 编程工具：Claude Code、OpenCode、Cursor、Trae、Codex 等。
