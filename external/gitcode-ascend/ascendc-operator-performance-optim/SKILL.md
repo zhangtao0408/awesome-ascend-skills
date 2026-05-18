@@ -4,12 +4,12 @@ description: 排查并优化 Ascend C 算子性能。当用户开发、审查或
   性能优化、算子优化、tiling、流水、搬运、 内存优化、NPU/昇腾等关键词时触发。
 original-name: ascendc-operator-performance-optim
 synced-from: https://gitcode.com/Ascend/agent-skills
-synced-date: '2026-04-18'
-synced-commit: 9f4c6c19a042f03239a07ac2f3196fb590d0a114
+synced-date: '2026-05-18'
+synced-commit: b9d45f47afbf8fefdeb77f731d39b57d76b02b0b
 license: UNKNOWN
 ---
 
-# Ascend C 算子性能优化（排查 → 修改 → 验证 闭环）
+# Ascend C 算子性能优化（排查 → 修改 → 验证 闭环） 
 
 本 skill 不仅排查性能问题，还负责 **修改代码并验证优化效果**。完整流程为：
 

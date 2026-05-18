@@ -6,85 +6,36 @@
 
 ## 模板 1：归约类算子（Reduction）
 
-**代表**：RMSNorm、L2Norm、Softmax、CrossEntropy
+**代表**：GroupNorm、LayerNorm、RMSNorm、L2Norm、Softmax
 
-**特征**：
-- 需要跨元素求和、求最大值等归约操作
-- 归约操作必须在 FP32 精度下进行
-- grid = 物理核数，核内循环处理多行
+**核心思路**：当 `NBLOCK = next_power_of_2(D)` 覆盖整行时，**单 pass**——一次 load 进 UB，`tl.sum(x, 1)` 在 UB 内完成 mean/var，直接 normalize+输出。双 pass（多次 load 同一数据）是反模式，可慢 5x。
 
 ```python
-import torch
-import triton
-import triton.language as tl
-import triton.runtime.driver as driver
-
-def get_npu_vectorcore_num():
-    device = torch.npu.current_device()
-    return driver.active.utils.get_device_properties(device)["num_vectorcore"]
-
 @triton.jit
-def l2norm_fwd_kernel(
-    X,
-    Y,
-    eps,
-    M,
-    N: tl.constexpr,
-    rows_per_prog: tl.constexpr,
-    MBLOCK: tl.constexpr,
-    NBLOCK: tl.constexpr,
-):
-    prog_id = tl.program_id(0)
-
-    row_start = prog_id * rows_per_prog
+def group_norm_kernel(x_ptr, y_ptr, M, D, eps, rows_per_prog, MBLOCK, NBLOCK):
+    pid = tl.program_id(0)
+    row_start = pid * rows_per_prog
     col_off = tl.arange(0, NBLOCK)
-    col_mask = col_off < N
+    col_mask = col_off < D
 
-    for row_blk_id in range(0, rows_per_prog, MBLOCK):
-        row_blk_id = tl.multiple_of(row_blk_id, MBLOCK)
-        row_idx = row_start + row_blk_id + tl.arange(0, MBLOCK)
-        row_off = row_idx * N
-        row_mask = row_idx < M
+    for mb in range(0, rows_per_prog, MBLOCK):
+        row_idx = row_start + mb + tl.arange(0, MBLOCK)
+        tot_off = row_idx[:, None] * D + col_off[None, :]
+        tot_mask = (row_idx < M)[:, None] & col_mask[None, :]
 
-        tot_off = row_off[:, None] + col_off[None, :]
-        tot_mask = row_mask[:, None] & col_mask[None, :]
+        x = tl.load(x_ptr + tot_off, mask=tot_mask, other=0.0).to(tl.float32)
 
-        xs = tl.load(X + tot_off, mask=tot_mask).to(tl.float32)
+        # 单 pass：一次 load，UB 内全计算
+        mean = tl.sum(x, 1) / D
+        var = tl.sum(x * x, 1) / D - mean * mean
+        y = (x - mean[:, None]) * tl.rsqrt(var[:, None] + eps)
 
-        square = xs * xs
-        square_sum = tl.sum(square, 1)[:, None]
-        rsqrt = tl.rsqrt(square_sum + eps)
-
-        tl.store(Y + tot_off, xs * rsqrt, mask=tot_mask)
-
-def l2norm_fwd(x: torch.Tensor, eps: float = 1e-6):
-    x_shape_og = x.shape
-    x = x.reshape(-1, x.shape[-1])
-    y = torch.empty_like(x)
-
-    T, D = x.shape[0], x.shape[-1]
-    BD = min(65536 // x.element_size(), triton.next_power_of_2(D))
-
-    ub_size = 196608
-    core_num = get_npu_vectorcore_num()
-
-    if T <= core_num:
-        num_progs = T
-        rows_per_prog = 1
-        MBLOCK = 1
-    else:
-        num_progs = core_num
-        rows_per_prog = triton.cdiv(T, core_num)
-        MBLOCK = min(ub_size // (BD * 4 * 4), rows_per_prog)
-
-    grid = (num_progs,)
-    l2norm_fwd_kernel[grid](
-        X=x, Y=y, eps=eps, M=T, N=D,
-        rows_per_prog=rows_per_prog, MBLOCK=MBLOCK, NBLOCK=BD,
-    )
-
-    return y.view(x_shape_og)
+        tl.store(y_ptr + tot_off, y, mask=tot_mask)
 ```
+
+**Host 侧要点**：
+- `NBLOCK = min(8192, next_power_of_2(D))`，可大胆用 8192
+- Weight/bias 需预展开匹配 reshape 后布局，避免 kernel 内 gather
 
 ---
 
@@ -112,6 +63,10 @@ def get_npu_aicore_num():
     configs=[
         triton.Config({'BLOCK_M': 128, 'BLOCK_N': 256, 'BLOCK_K': 256}),
         triton.Config({'BLOCK_M': 256, 'BLOCK_N': 128, 'BLOCK_K': 256}),
+        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 512, 'BLOCK_K': 256}),
+        triton.Config({'BLOCK_M': 512, 'BLOCK_N': 64, 'BLOCK_K': 256}),
+        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 128, 'BLOCK_K': 128}),
+        triton.Config({'BLOCK_M': 128, 'BLOCK_N': 64, 'BLOCK_K': 128}),
     ],
     key=['M', 'N', 'K'],
 )
@@ -121,6 +76,7 @@ def matmul_kernel(
     M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
     num_cores: tl.constexpr,
     BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, BLOCK_K: tl.constexpr,
+    BLOCK_THRESHOLD: tl.constexpr = 4,
 ):
     pid = tl.program_id(axis=0)
 
@@ -128,9 +84,18 @@ def matmul_kernel(
     NUM_BLOCKS_N = triton.cdiv(N, BLOCK_N)
     NUM_BLOCKS = NUM_BLOCKS_M * NUM_BLOCKS_N
 
-    for block_idx in range(pid, NUM_BLOCKS, num_cores):
-        task_m_idx = block_idx // NUM_BLOCKS_N
-        task_n_idx = block_idx % NUM_BLOCKS_N
+    blocks_per_core = triton.cdiv(NUM_BLOCKS, num_cores)
+    block_start = pid * blocks_per_core
+    block_end = triton.minimum(block_start + blocks_per_core, NUM_BLOCKS)
+
+    for block_idx in range(block_start, block_end):
+        # 对角线调度：大矩阵时沿对角线分散 block，提升 L2 缓存命中率
+        if NUM_BLOCKS_M >= BLOCK_THRESHOLD and NUM_BLOCKS_N >= BLOCK_THRESHOLD:
+            task_m_idx = block_idx % NUM_BLOCKS_M
+            task_n_idx = (block_idx // NUM_BLOCKS_M) % NUM_BLOCKS_N
+        else:
+            task_m_idx = block_idx // NUM_BLOCKS_N
+            task_n_idx = block_idx % NUM_BLOCKS_N
         m_start = task_m_idx * BLOCK_M
         n_start = task_n_idx * BLOCK_N
 
@@ -141,14 +106,15 @@ def matmul_kernel(
                            (k_start + tl.arange(0, BLOCK_K))[None, :]
             mat_a_mask = ((m_start + tl.arange(0, BLOCK_M)) < M)[:, None] & \
                          ((k_start + tl.arange(0, BLOCK_K)) < K)[None, :]
-            mat_a_block = tl.load(mat_a + mat_a_offset, mask=mat_a_mask, other=0.0)
+            # care_padding=False：mask 位置填充随机值，性能更优（~5-10%）
+            mat_a_block = tl.load(mat_a + mat_a_offset, mask=mat_a_mask, other=0.0, care_padding=False)
             tl.compile_hint(mat_a_block, "dot_pad_only_k")
 
             mat_b_offset = ((k_start + tl.arange(0, BLOCK_K)) * N)[:, None] + \
                            (n_start + tl.arange(0, BLOCK_N))[None, :]
             mat_b_mask = ((k_start + tl.arange(0, BLOCK_K)) < K)[:, None] & \
                          ((n_start + tl.arange(0, BLOCK_N)) < N)[None, :]
-            mat_b_block = tl.load(mat_b + mat_b_offset, mask=mat_b_mask, other=0.0)
+            mat_b_block = tl.load(mat_b + mat_b_offset, mask=mat_b_mask, other=0.0, care_padding=False)
             tl.compile_hint(mat_b_block, "dot_pad_only_k")
 
             mat_c_block = tl.dot(mat_a_block, mat_b_block, mat_c_block)
@@ -167,6 +133,38 @@ def matmul(mat_a: torch.Tensor, mat_b: torch.Tensor):
     num_cores = get_npu_aicore_num()
     matmul_kernel[(num_cores,)](mat_a, mat_b, mat_c, M, N, K, num_cores)
     return mat_c
+```
+
+### GEMM 进阶：Post-Dot 并行 + 双缓冲
+
+**Post-Dot 并行**（`tl.parallel(bind_sub_block=True)`）：将 dot 后的逐元素操作（激活、类型转换、存储）分发到 2 个 Vector Core 并行执行。
+
+```python
+# 在 GEMM kernel 的 dot 循环结束后、store 之前：
+SUB_BLK_M: tl.constexpr = BLOCK_M // 2  # 必须整除
+
+for s in tl.parallel(0, 2, bind_sub_block=True):
+    sub = tl.extract_slice(mat_c_block, (s * SUB_BLK_M, 0), (SUB_BLK_M, BLOCK_N), (1, 1))
+    sub = tl.where(sub > 0.0, sub, 0.0)        # 激活（如 ReLU）
+    sub = sub.to(tl.float16)                    # 类型转换
+    sub_off = ((m_start + s * SUB_BLK_M + tl.arange(0, SUB_BLK_M)) * N)[:, None] + \
+              (n_start + tl.arange(0, BLOCK_N))[None, :]
+    sub_mask = ((m_start + s * SUB_BLK_M + tl.arange(0, SUB_BLK_M)) < M)[:, None] & \
+               ((n_start + tl.arange(0, BLOCK_N)) < N)[None, :]
+    tl.store(mat_c + sub_off, sub, mask=sub_mask)
+```
+
+**双缓冲**（`tl.multibuffer`）：重叠 DMA 搬运和计算，A2/A3 默认启用。
+
+```python
+mat_a_block = tl.multibuffer(mat_a_block, size=2)  # 仅支持 size=2
+```
+
+**`tl.cast` 溢出模式**：
+
+```python
+result = tl.cast(tensor, tl.int8, overflow_mode="saturate")  # 钳位到 [min, max]
+result = tl.cast(tensor, tl.int8, overflow_mode="trunc")     # 默认，截断高位
 ```
 
 ---
@@ -197,23 +195,28 @@ def silu(x):
 @triton.jit
 def swiglu_forward_kernel(
     a_ptr, b_ptr, c_ptr, stride,
-    n_cols: tl.constexpr, BLOCK_SIZE: tl.constexpr
+    n_rows, n_cols: tl.constexpr,
+    rows_per_core: tl.constexpr,
+    BLOCK_SIZE: tl.constexpr
 ):
-    program_id = tl.program_id(0).to(tl.int64)
-
-    a_ptr += program_id * stride
-    b_ptr += program_id * stride
-    c_ptr += program_id * stride
-
+    pid = tl.program_id(0)
+    
+    row_start = pid * rows_per_core
+    row_end = tl.minimum(row_start + rows_per_core, n_rows)
+    
     base_offsets = tl.arange(0, BLOCK_SIZE)
-    for i in range(0, n_cols, BLOCK_SIZE):
-        col_offsets = base_offsets + i
-        mask = col_offsets < n_cols
-
-        a_row = tl.load(a_ptr + col_offsets, mask=mask, other=0).to(tl.float32)
-        b_row = tl.load(b_ptr + col_offsets, mask=mask, other=0)
-        c_row = silu(a_row).cast(b_row.dtype) * b_row
-        tl.store(c_ptr + col_offsets, c_row, mask=mask)
+    
+    for row_idx in range(row_start, row_end):
+        row_offset = row_idx * stride
+        
+        for i in range(0, n_cols, BLOCK_SIZE):
+            col_offsets = base_offsets + i
+            mask = col_offsets < n_cols
+            
+            a_row = tl.load(a_ptr + row_offset + col_offsets, mask=mask, other=0).to(tl.float32)
+            b_row = tl.load(b_ptr + row_offset + col_offsets, mask=mask, other=0)
+            c_row = silu(a_row).cast(b_row.dtype) * b_row
+            tl.store(c_ptr + row_offset + col_offsets, c_row, mask=mask)
 
 def swiglu_forward(a: torch.Tensor, b: torch.Tensor):
     ori_shape = a.shape
@@ -224,10 +227,20 @@ def swiglu_forward(a: torch.Tensor, b: torch.Tensor):
     n_rows = a.shape[0]
 
     BLOCK_SIZE = min(5120, triton.next_power_of_2(n_cols))
+    
+    core_num = get_npu_vectorcore_num()
+    
+    if n_rows <= core_num:
+        grid = (n_rows,)
+        rows_per_core = 1
+    else:
+        grid = (core_num,)
+        rows_per_core = triton.cdiv(n_rows, core_num)
 
-    swiglu_forward_kernel[(n_rows,)](
+    swiglu_forward_kernel[grid](
         a, b, c, c.stride(-2),
-        n_cols=n_cols, BLOCK_SIZE=BLOCK_SIZE,
+        n_rows, n_cols,
+        rows_per_core, BLOCK_SIZE,
     )
     return c.view(*ori_shape)
 ```
@@ -247,6 +260,11 @@ def swiglu_forward(a: torch.Tensor, b: torch.Tensor):
 import torch
 import triton
 import triton.language as tl
+import triton.runtime.driver as driver
+
+def get_npu_vectorcore_num():
+    device = torch.npu.current_device()
+    return driver.active.utils.get_device_properties(device)["num_vectorcore"]
 
 MAX_FUSED_SIZE = 3840
 
@@ -255,48 +273,52 @@ def cross_entropy_kernel(
     X_ptr, X_stride,
     Y_ptr, Y_stride,
     loss_ptr,
-    n_cols,
+    n_rows, n_cols,
     n_non_ignore,
     ignore_index,
+    rows_per_core: tl.constexpr,
     reduction: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
 ):
-    program_id = tl.program_id(0).to(tl.int64)
-
-    Y_ptr += program_id * Y_stride
-    y = tl.load(Y_ptr).to(tl.int32)
-
-    X_ptr += program_id * X_stride
-
-    if y == ignore_index:
-        for i in range(0, n_cols, BLOCK_SIZE):
-            X_offsets = i + tl.arange(0, BLOCK_SIZE)
-            tl.store(X_ptr + X_offsets, 0.0, mask=X_offsets < n_cols)
-        return
-
-    loss_ptr += program_id
-
-    m = float("-inf")
-    d = 0.0
-    ori_X_y = tl.load(X_ptr + y).cast(tl.float32)
-
-    for i in range(0, n_cols, BLOCK_SIZE):
-        X_offsets = i + tl.arange(0, BLOCK_SIZE)
-        X_block = tl.load(
-            X_ptr + X_offsets, mask=X_offsets < n_cols, other=float("-inf")
-        ).cast(tl.float32)
-        block_max = tl.max(X_block)
-        m_new = tl.maximum(m, block_max)
-        d = d * tl.exp(m - m_new) + tl.sum(tl.exp(X_block - m_new))
-        m = m_new
-
-    lse = m + tl.log(d)
-    loss = lse - ori_X_y
-
-    if reduction == "mean":
-        loss = loss / n_non_ignore
-
-    tl.store(loss_ptr, loss)
+    pid = tl.program_id(0)
+    
+    row_start = pid * rows_per_core
+    row_end = tl.minimum(row_start + rows_per_core, n_rows)
+    
+    for row_idx in range(row_start, row_end):
+        Y_ptr_row = Y_ptr + row_idx * Y_stride
+        y = tl.load(Y_ptr_row).to(tl.int32)
+        
+        X_ptr_row = X_ptr + row_idx * X_stride
+        
+        if y == ignore_index:
+            for i in range(0, n_cols, BLOCK_SIZE):
+                X_offsets = i + tl.arange(0, BLOCK_SIZE)
+                tl.store(X_ptr_row + X_offsets, 0.0, mask=X_offsets < n_cols)
+        else:
+            loss_ptr_row = loss_ptr + row_idx
+            
+            m = float("-inf")
+            d = 0.0
+            ori_X_y = tl.load(X_ptr_row + y).cast(tl.float32)
+            
+            for i in range(0, n_cols, BLOCK_SIZE):
+                X_offsets = i + tl.arange(0, BLOCK_SIZE)
+                X_block = tl.load(
+                    X_ptr_row + X_offsets, mask=X_offsets < n_cols, other=float("-inf")
+                ).cast(tl.float32)
+                block_max = tl.max(X_block)
+                m_new = tl.maximum(m, block_max)
+                d = d * tl.exp(m - m_new) + tl.sum(tl.exp(X_block - m_new))
+                m = m_new
+            
+            lse = m + tl.log(d)
+            loss = lse - ori_X_y
+            
+            if reduction == "mean":
+                loss = loss / n_non_ignore
+            
+            tl.store(loss_ptr_row, loss)
 
 def cross_entropy_forward(_input: torch.Tensor, target: torch.Tensor,
                           ignore_index: int = -100, reduction: str = "mean"):
@@ -308,13 +330,23 @@ def cross_entropy_forward(_input: torch.Tensor, target: torch.Tensor,
 
     target_mask = target != ignore_index
     n_non_ignore = target_mask.sum().item()
+    
+    core_num = get_npu_vectorcore_num()
+    
+    if n_rows <= core_num:
+        grid = (n_rows,)
+        rows_per_core = 1
+    else:
+        grid = (core_num,)
+        rows_per_core = triton.cdiv(n_rows, core_num)
 
-    cross_entropy_kernel[(n_rows,)](
+    cross_entropy_kernel[grid](
         X_ptr=_input, X_stride=_input.stride(-2),
         Y_ptr=target, Y_stride=target.stride(-1),
         loss_ptr=loss_1d,
-        n_cols=V, n_non_ignore=n_non_ignore,
+        n_rows=n_rows, n_cols=V, n_non_ignore=n_non_ignore,
         ignore_index=ignore_index,
+        rows_per_core=rows_per_core,
         reduction=reduction,
         BLOCK_SIZE=BLOCK_SIZE,
     )
@@ -462,6 +494,21 @@ def attention_qk_kernel(
 
     qk = tl.dot(q, k.trans())
     tl.store(output_ptr + m_start * BLOCK_N + n_start, qk)
+```
+
+### Attention 进阶：Cube-Vector 信号同步
+
+在 CV 混合算子中，Cube 计算完成后需通知 Vector Core 开始后续操作：
+
+```python
+# Cube 侧：完成 dot 计算后发信号
+tl.sync_block_set(sender="cube", receiver="vector", event_id=0)
+
+# Vector 侧：等待 Cube 信号后执行 softmax / cast 等
+tl.sync_block_wait(sender="cube", receiver="vector", event_id=0)
+# ... 执行 softmax 等向量操作
+
+# 可用 event_id：0~15（共 16 个事件通道）
 ```
 
 ---
@@ -627,3 +674,93 @@ def expand_batch_to_tokens(
 - 状态索引计算
 - 边界处理（padding）
 - 条件分支（IS_CONTINUOUS_BATCHING）
+
+---
+
+## 模板 10：Broadcast 辅助张量的逐元素算子（Contiguous Expand 模式）
+
+**代表**：RoPE (Rotary Position Embedding)、位置编码乘法
+
+**核心模式**：当辅助张量（cos/sin 等）需要 broadcast 到主张量形状时，**host 侧 expand+contiguous 展平为 (total_rows, D)**，kernel 内所有张量使用统一 `row * D + col` 偏移。比 kernel 内 broadcast stride 快 45%（连续访存触发大块 DMA burst）。
+
+**适用条件**：辅助张量原始大小 << 主张量大小。
+
+```python
+# ── Host 侧：expand + contiguous，消除 broadcast stride ──
+cos_flat = cos.expand(x.shape).contiguous().reshape(total_rows, D)
+sin_flat = sin.expand(x.shape).contiguous().reshape(total_rows, D)
+x_flat = x.contiguous().reshape(total_rows, D)
+out_flat = torch.empty_like(x_flat)
+
+# ── Kernel 内：所有张量用相同偏移，完全连续 ──
+row_off = global_rows * D
+off_first = row_off[:, None] + col_off_first[None, :]    # x, cos, sin, out 通用
+off_second = row_off[:, None] + col_off_second[None, :]
+
+x1 = tl.load(x_ptr + off_first, mask=half_mask)
+cos1 = tl.load(cos_ptr + off_first, mask=half_mask)      # 与 x 相同偏移
+out1 = x1 * cos1 - x2 * sin1
+tl.store(out_ptr + off_first, out1, mask=half_mask)
+```
+
+详细踩坑记录见 [`optimization-patterns.md`](../../triton-operator-performance-optim/references/optimization-patterns.md) 踩坑 7。
+
+---
+
+## 模板 11：Embedding/Gather 类算子
+
+**代表**：EmbeddingLookup、TokenGather、ScatterUpdate
+
+**三种 API 选择**：
+
+| API | 用途 | 约束 |
+|-----|------|------|
+| `tl.index_select()` | 标准 embedding gather | — |
+| `index_select_simd()` | 高性能 gather（Ascend 扩展） | `dim < ndim - 1`，`read_shape[dim] = -1` |
+| `index_put()` | Scatter write（Ascend 扩展） | 2D~5D，fp16/bf16/fp32，`dim < rank - 1` |
+
+```python
+from triton.language.extra.ascend.libdevice import index_select_simd, index_put
+
+# ── tl.index_select：标准 Embedding Gather ──
+result = tl.index_select(
+    src=src_ptr, idx=indices, bound=embedding_size,
+    lstdim_blksiz=D, offsets=(0, 0, 0), numels=(M, N, D)
+)
+
+# ── index_select_simd：高性能 Gather（SIMD 加速） ──
+result = index_select_simd(
+    src=src_ptr, dim=1, index=indices,
+    src_shape=[M, N, D], src_offset=[0, -1, 0],
+    read_shape=[4, -1, 128]  # read_shape[dim] 必须为 -1，由 len(index) 替换
+)
+# 约束：dim < ndim - 1
+
+# ── index_put：Scatter Write ──
+index_put(
+    ptr=dst_ptr, index=index_tensor, value=value_tensor,
+    dim=0, dst_shape=(M, N), dst_offset=(0, 0)
+)
+# 约束：2D~5D，fp16/bf16/fp32，dim < rank - 1
+```
+
+---
+
+## 模板 12：Sort/Flip 类算子
+
+**代表**：TopK（sort + index）、ArgSort、降序排列
+
+**关键约束**：`tl.sort()` 仅支持最后一维（`dim=-1` 或 `dim=rank-1`）。
+
+```python
+import triton.language as tl
+
+# 升序排序
+x_sorted = tl.sort(x, dim=-1, descending=False)
+
+# 降序排列：先升序 sort 再 flip
+x_sorted = tl.sort(x, dim=-1, descending=False)
+x_desc = tl.flip(x_sorted, dim=0)
+
+# 注意：dim 参数只能是 -1 或最后一维的索引
+```

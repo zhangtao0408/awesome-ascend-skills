@@ -3,8 +3,8 @@ name: external-gitcode-ascend-ascendc-operator-testcase-gen
 description: 完成AscendC算子验证用例生成 - 帮助用户完成testcase设计。当用户提到用例设计、泛化用例生成、算子标杆、UT用例、精度用例、性能用例时，使用此skill。
 original-name: ascendc-operator-testcase-gen
 synced-from: https://gitcode.com/Ascend/agent-skills
-synced-date: '2026-04-18'
-synced-commit: 9f4c6c19a042f03239a07ac2f3196fb590d0a114
+synced-date: '2026-05-18'
+synced-commit: b9d45f47afbf8fefdeb77f731d39b57d76b02b0b
 license: UNKNOWN
 ---
 
