@@ -38,13 +38,13 @@
 - GitHub Pages: https://ascend-ai-coding.github.io/awesome-ascend-skills/
 - skills.sh: https://skills.sh/ascend-ai-coding/awesome-ascend-skills
 
-网页数据由 `scripts/build_web_data.py` 从仓库内的 `SKILL.md` 和 `.claude-plugin/marketplace.json` 生成：
+网页代码位于 `web/`，网页数据由 `web/scripts/build_web_data.py` 从仓库内的 `SKILL.md` 和 `.claude-plugin/marketplace.json` 生成：
 
 ```bash
-python3 scripts/build_web_data.py
+python3 web/scripts/build_web_data.py
 ```
 
-GitHub Pages workflow 会在当前分支内直接读取这些文件并部署 `docs/`。
+GitHub Pages workflow 会在当前分支内直接读取这些文件并部署 `web/`。
 
 ### 自动安装
 

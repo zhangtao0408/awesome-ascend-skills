@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 
-WEB_ROOT = Path(__file__).resolve().parent.parent
+WEB_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPO_SLUG = "ascend-ai-coding/awesome-ascend-skills"
 DEFAULT_REF = "main"
 
@@ -116,7 +117,7 @@ def collect_skills(
     skills: list[dict[str, Any]] = []
     for skill_file in sorted(source_root.glob("**/SKILL.md")):
         rel_file = skill_file.relative_to(source_root).as_posix()
-        if rel_file.startswith(("tests/", "docs/", ".agents/", ".git/")):
+        if rel_file.startswith(("tests/", "web/", ".agents/", ".git/")):
             continue
 
         rel_dir = skill_file.parent.relative_to(source_root).as_posix()
@@ -211,14 +212,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--source-root",
         type=Path,
-        default=WEB_ROOT,
+        default=REPO_ROOT,
         help="Repository root that contains SKILL.md files and .claude-plugin/marketplace.json.",
     )
     parser.add_argument(
         "--out",
         type=Path,
-        default=WEB_ROOT / "docs" / "skills-data.js",
-        help="Output JS data file. Relative paths are resolved from the web branch root.",
+        default=WEB_ROOT / "skills-data.js",
+        help="Output JS data file. Relative paths are resolved from the web app root.",
     )
     parser.add_argument(
         "--repo-slug",
@@ -245,7 +246,7 @@ def main() -> None:
     payload = {
         "repo": args.repo_slug,
         "defaultBranch": args.ref,
-        "generatedBy": "scripts/build_web_data.py",
+        "generatedBy": "web/scripts/build_web_data.py",
         "stats": build_stats(skills, bundles),
         "skills": skills,
         "bundles": bundles,
@@ -256,7 +257,7 @@ def main() -> None:
         + ";\n",
         encoding="utf-8",
     )
-    display_path = output_path.relative_to(WEB_ROOT) if output_path.is_relative_to(WEB_ROOT) else output_path
+    display_path = output_path.relative_to(REPO_ROOT) if output_path.is_relative_to(REPO_ROOT) else output_path
     print(f"Wrote {display_path} with {len(skills)} skills and {len(bundles)} bundles")
 
 

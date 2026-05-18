@@ -1,7 +1,7 @@
 window.SKILLS_APP_DATA = {
   "repo": "ascend-ai-coding/awesome-ascend-skills",
   "defaultBranch": "main",
-  "generatedBy": "scripts/build_web_data.py",
+  "generatedBy": "web/scripts/build_web_data.py",
   "stats": {
     "skillCount": 125,
     "bundleCount": 8,

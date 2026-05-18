@@ -39,8 +39,10 @@
         </span>
       </a>
       <nav class="top-nav" aria-label="页面导航">
+        <a href="#guide">安装指引</a>
         <a href="#skills">Skills</a>
-        <a href="#bundles">配套安装</a>
+        <a href="#install">安装命令</a>
+        <a href="#bundles">配套组</a>
         <a href="https://github.com/ascend-ai-coding/awesome-ascend-skills">GitHub</a>
       </nav>
     </header>
@@ -48,7 +50,7 @@
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <h1 id="hero-title">快速查找并安装昇腾开发 Skills</h1>
+          <h1 id="hero-title">快速查找并安装<span class="text-ascend title-line">昇腾开发 Skills</span></h1>
           <p>
             面向 Claude Code、OpenCode、Cursor、Trae、Codex 等 Agent 工具的昇腾 NPU 技能库。搜索一个场景，复制命令，交给 CLI 或 Agent 完成安装。
           </p>
@@ -74,6 +76,32 @@ npx skills add ascend-ai-coding/awesome-ascend-skills -s npu-smi ascend-docker</
         </div>
       </section>
 
+      <section class="guide-section" id="guide" aria-labelledby="guide-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="guide-title">如何下载 Skill</h2>
+            <p>页面不会直接替你安装文件，而是帮你生成可复制的安装命令或 Agent 安装说明。</p>
+          </div>
+        </div>
+        <div class="guide-grid">
+          <article class="guide-card">
+            <span class="guide-step">1</span>
+            <h3>搜索并查看 Skill</h3>
+            <p>在 Skill 索引里输入关键词，点击左侧条目后，右侧会展示 SKILL.md 的详细说明。</p>
+          </article>
+          <article class="guide-card">
+            <span class="guide-step">2</span>
+            <h3>选择要安装的 Skill</h3>
+            <p>勾选左侧复选框，或在右侧详情点击“选择此 Skill”。可以单选、多选，也可以全选当前列表。</p>
+          </article>
+          <article class="guide-card">
+            <span class="guide-step">3</span>
+            <h3>复制安装命令</h3>
+            <p>到下方“批量安装命令”复制 npx 命令，或复制给 Agent 的安装说明。</p>
+          </article>
+        </div>
+      </section>
+
       <section class="search-shell" id="skills" aria-labelledby="skills-title">
         <div class="section-heading">
           <div>
@@ -96,6 +124,12 @@ npx skills add ascend-ai-coding/awesome-ascend-skills -s npu-smi ascend-docker</
           <div class="segmented compact" id="sourceFilters" aria-label="按来源筛选"></div>
         </div>
 
+        <div class="install-callout">
+          <strong>下载入口在下方生成</strong>
+          <span>先在左侧勾选一个或多个 Skill，页面会自动在“批量安装命令”区域生成 npx、skills.sh 和 Agent 安装说明。</span>
+          <a class="small-copy" href="#install">查看安装命令</a>
+        </div>
+
         <div class="workspace">
           <aside class="skill-list-panel" aria-label="Skill 列表">
             <div class="list-meta">
@@ -111,7 +145,7 @@ npx skills add ascend-ai-coding/awesome-ascend-skills -s npu-smi ascend-docker</
         </div>
       </section>
 
-      <section class="selection-panel" aria-labelledby="selection-title">
+      <section class="selection-panel" id="install" aria-labelledby="selection-title">
         <div class="section-heading">
           <div>
             <h2 id="selection-title">批量安装命令</h2>

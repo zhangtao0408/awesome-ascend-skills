@@ -311,6 +311,18 @@ function clearVisibleSkills() {
   showToast(`已取消当前列表的 ${skills.length} 个 Skills`);
 }
 
+function toggleSkillSelection(name) {
+  if (state.selected.has(name)) {
+    state.selected.delete(name);
+    showToast("已取消选择该 Skill");
+  } else {
+    state.selected.add(name);
+    showToast("已选择该 Skill，可到下方复制安装命令");
+  }
+  renderSkillList();
+  renderBulkCommands();
+}
+
 function showToast(message) {
   els.toast.textContent = message;
   els.toast.classList.add("show");
@@ -392,6 +404,7 @@ function renderSkillDetail(skill) {
   const singleSkillsSh = skillsShUrl(skill.name);
   const singlePrompt = agentPrompt([skill]);
   const relatedBundles = bundlesForSkill(skill.name);
+  const isSelected = state.selected.has(skill.name);
   const externalNotice = skill.syncedFrom
     ? `<div class="external-notice">
         <strong>该 SKILL 为外部 skill</strong>
@@ -425,6 +438,14 @@ function renderSkillDetail(skill) {
       ${externalNotice}
       <p>${escapeHtml(skill.description || "No description")}</p>
       <div class="detail-actions">
+        <button class="button ${isSelected ? "secondary" : "primary"}" data-toggle-skill="${escapeHtml(skill.name)}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${isSelected ? "M5 12h14" : "M5 12h14M12 5v14"}" /></svg>
+          ${isSelected ? "取消选择" : "选择此 Skill"}
+        </button>
+        <a class="button secondary" href="#install">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+          查看安装命令
+        </a>
         <button class="button primary" data-copy="${escapeHtml(singleNpx)}" data-copy-message="已复制 npx 下载命令">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8M8 12h8M8 17h5" /></svg>
           复制 npx
@@ -559,6 +580,12 @@ document.addEventListener("click", (event) => {
   const bundleSelectButton = event.target.closest("[data-select-bundle]");
   if (bundleSelectButton) {
     selectBundle(bundleSelectButton.getAttribute("data-select-bundle"));
+    return;
+  }
+
+  const toggleButton = event.target.closest("[data-toggle-skill]");
+  if (toggleButton) {
+    toggleSkillSelection(toggleButton.getAttribute("data-toggle-skill"));
     return;
   }
 
