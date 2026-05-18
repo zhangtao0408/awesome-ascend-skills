@@ -4,8 +4,8 @@ description: 指导 Catlass 算子性能调优。流程：阅读 catlass 优化�
   catlass 文档为准。条件不明则追问。
 original-name: catlass-operator-performance-optim
 synced-from: https://gitcode.com/Ascend/agent-skills
-synced-date: '2026-04-18'
-synced-commit: 9f4c6c19a042f03239a07ac2f3196fb590d0a114
+synced-date: '2026-05-18'
+synced-commit: b9d45f47afbf8fefdeb77f731d39b57d76b02b0b
 license: UNKNOWN
 ---
 

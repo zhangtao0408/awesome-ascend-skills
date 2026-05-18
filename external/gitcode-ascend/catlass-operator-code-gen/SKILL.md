@@ -3,8 +3,8 @@ name: external-gitcode-ascend-catlass-operator-code-gen
 description: 根据CATLASS算子设计文档生成算子工程交付件
 original-name: catlass-operator-code-gen
 synced-from: https://gitcode.com/Ascend/agent-skills
-synced-date: '2026-04-18'
-synced-commit: 9f4c6c19a042f03239a07ac2f3196fb590d0a114
+synced-date: '2026-05-18'
+synced-commit: b9d45f47afbf8fefdeb77f731d39b57d76b02b0b
 license: UNKNOWN
 ---
 

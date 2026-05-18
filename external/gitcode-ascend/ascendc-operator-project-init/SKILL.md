@@ -4,8 +4,8 @@ description: 初始化 AscendC 算子工程并创建可编译的算子骨架。�
   需要基于 ascend-kernel 模板快速落地。本 skill 不只建目录，还输出“可继续开发”的标准文件与检查清单。
 original-name: ascendc-operator-project-init
 synced-from: https://gitcode.com/Ascend/agent-skills
-synced-date: '2026-04-18'
-synced-commit: 9f4c6c19a042f03239a07ac2f3196fb590d0a114
+synced-date: '2026-05-18'
+synced-commit: b9d45f47afbf8fefdeb77f731d39b57d76b02b0b
 license: UNKNOWN
 ---
 
